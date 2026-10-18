@@ -1,0 +1,12 @@
+{
+  "users": [
+    {
+      "id": "1",
+      "name": "Township Ops",
+      "username": "admin",
+      "passwordSha256": "db225a631c06d5aa6fafbe60b0d7314921661e5c179a1a76ab548f1206e41f91",
+      "role": "admin",
+      "avatar": ""
+    }
+  ]
+}
