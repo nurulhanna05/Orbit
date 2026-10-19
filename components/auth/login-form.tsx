@@ -70,12 +70,14 @@ export default function LoginForm() {
   };
 
   return (
-    <Card className="shadow-lg border-border/40">
+    <Card>
       <CardHeader className="space-y-1 text-center">
         <div className="flex items-center justify-center">
-          <div className="rounded-lg bg-emerald-600 p-2 text-white mb-2"><ScanEye className="h-8 w-8" /></div>
+          <div className="mb-2 rounded-lg bg-primary p-2 text-primary-foreground">
+            <ScanEye className="h-8 w-8" aria-hidden />
+          </div>
         </div>
-        <CardTitle className="text-2xl font-semibold">{systemName}</CardTitle>
+        <CardTitle as="h1" className="text-2xl font-semibold">{systemName}</CardTitle>
         <CardDescription>SDP Township · City of Elmina<br />Township operations &amp; predictive maintenance</CardDescription>
       </CardHeader>
       <CardContent>
@@ -110,17 +112,17 @@ export default function LoginForm() {
             <Button type="submit" className="w-full" disabled={isLoading}>
               {isLoading ? (
                 <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Logging in...
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" aria-hidden />
+                  Logging in…
                 </>
               ) : (
-                "Login"
+                "Log in"
               )}
             </Button>
           </form>
         </Form>
-        <div className="mt-5 flex items-start gap-2 rounded-md border border-emerald-200 bg-emerald-50 p-3 text-xs text-emerald-900 dark:border-emerald-900 dark:bg-emerald-950/50 dark:text-emerald-200">
-          <ShieldCheck className="h-4 w-4 shrink-0 mt-0.5" />
+        <div className="mt-6 flex items-start gap-2 rounded-md border bg-muted p-3 text-xs text-muted-foreground">
+          <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-foreground" aria-hidden />
           <p>
             Privacy-by-design, aligned with PDPA principles: AnomalyGuard detects object states, hazards and anonymous
             behaviour, with no facial recognition. Access is for authorised operators only, and evidence snapshots are
@@ -128,7 +130,7 @@ export default function LoginForm() {
           </p>
         </div>
         {isDemoLogin && (
-          <p className="mt-3 text-center text-[11px] text-muted-foreground">
+          <p className="mt-4 text-center text-xs text-muted-foreground">
             Demo login: admin / admin (demo build only; not for public deployment)
           </p>
         )}

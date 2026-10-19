@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useRef, useState } from 'react';
-import { CheckCircle2, FlaskConical, ImageOff, Loader2, PlayCircle, Send, ShieldCheck, UploadCloud } from 'lucide-react';
+import { FlaskConical, ImageOff, Loader2, PlayCircle, Send, ShieldCheck, UploadCloud } from 'lucide-react';
 import type { Alert, DetectionClass, ZoneType } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -9,7 +9,6 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Slider } from '@/components/ui/slider';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
 import { useAnomaly } from '@/components/providers/anomaly-provider';
@@ -17,6 +16,9 @@ import { ZoneScene, displayLabel } from '@/components/anomaly/zone-feed';
 import { buildAlert, uid } from '@/lib/anomaly/simulator';
 import { SnapshotInput, analyseClip, detectionToAlert, isLiveBackend, snapshotInput } from '@/lib/anomaly/api';
 import { DETECTION_CLASSES, DETECTION_CLASS_LIST, SEVERITY_META, ZONE_CLASSES, ZONE_LABELS } from '@/lib/anomaly/taxonomy';
+import { PageHeader } from '@/components/layout/page-header';
+import { SeverityBadge, SeverityIcon, StatusBadge, TONE_FILL, TONE_OVERLAY } from '@/components/anomaly/status';
+import { cn } from '@/lib/utils';
 
 // `snapshot` is the edge service's anonymised frame for a backend detection: null when it sent metadata
 // only, undefined for simulated detections, which have no frame at all.
@@ -32,8 +34,8 @@ function SnapshotThumb({ ev, className }: { ev: SandboxEvent; className?: string
     );
   }
   return (
-    <div className={`flex items-center justify-center rounded border bg-muted text-[10px] text-muted-foreground ${className ?? ''}`}>
-      {ev.snapshot === null ? <ImageOff className="h-4 w-4" /> : 'Simulated'}
+    <div className={`flex items-center justify-center rounded border bg-muted text-xs text-muted-foreground ${className ?? ''}`}>
+      {ev.snapshot === null ? <ImageOff className="h-4 w-4" aria-label="No snapshot" /> : 'Simulated'}
     </div>
   );
 }
@@ -152,17 +154,19 @@ export default function SandboxPage() {
   };
 
   return (
-    <div className="container mx-auto space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight">Model Sandbox</h1>
-        <p className="text-muted-foreground">
-          Test the YOLOv8 anomaly model on pre-recorded footage. Your clip plays as is, with boxes and anonymous labels
-          overlaid.{' '}
-          {mockMode
-            ? 'No model is attached yet: detections are simulated and the clip never leaves this browser.'
-            : 'The local edge service analyses it without keeping it; only an anonymised snapshot of each detection comes back.'}
-        </p>
-      </div>
+    <div className="mx-auto max-w-[1600px] space-y-6">
+      <PageHeader
+        title="Model Sandbox"
+        description={
+          <>
+            What would the YOLOv8 model flag in this footage? Your clip plays as is, with boxes and anonymous labels
+            overlaid.{' '}
+            {mockMode
+              ? 'No model is attached yet: detections are simulated and the clip never leaves this browser.'
+              : 'The local edge service analyses it without keeping it; only an anonymised snapshot of each detection comes back.'}
+          </>
+        }
+      />
 
       <div className="grid gap-6 lg:grid-cols-[2fr_1fr]">
         <Card>
@@ -196,11 +200,11 @@ export default function SandboxPage() {
                   <div
                     key={`${e.id}-${i}`}
                     className="pointer-events-none absolute border-2"
-                    style={{ left: `${b.x}%`, top: `${b.y}%`, width: `${b.w}%`, height: `${b.h}%`, borderColor: DETECTION_CLASSES[e.alert.detectionClass].color }}
+                    style={{ left: `${b.x}%`, top: `${b.y}%`, width: `${b.w}%`, height: `${b.h}%`, borderColor: TONE_OVERLAY[e.alert.severity].fill }}
                   >
                     <span
-                      className="absolute left-[-2px] bottom-full whitespace-nowrap px-1 text-[10px] text-white"
-                      style={{ backgroundColor: DETECTION_CLASSES[e.alert.detectionClass].color }}
+                      className="absolute bottom-full left-[-2px] whitespace-nowrap px-1 text-2xs font-medium"
+                      style={{ backgroundColor: TONE_OVERLAY[e.alert.severity].fill, color: TONE_OVERLAY[e.alert.severity].text }}
                     >
                       {displayLabel(b, false)}
                     </span>
@@ -208,46 +212,48 @@ export default function SandboxPage() {
                 ))
               )}
               {videoUrl && mockMode && (
-                <span className="absolute top-2 left-2 flex items-center gap-1 rounded bg-amber-500/90 px-1.5 py-0.5 text-[10px] font-medium text-black">
-                  <FlaskConical className="h-3 w-3" /> Simulated detections · clip not analysed
+                <span className="absolute left-2 top-2 flex items-center gap-1 rounded bg-black/70 px-1.5 py-0.5 text-2xs font-medium text-white">
+                  <FlaskConical className="h-3 w-3" aria-hidden /> Simulated detections · clip not analysed
                 </span>
               )}
             </div>
 
             {events && (
               <div className="space-y-1">
-                <div className="relative h-6 rounded bg-muted">
+                <div className="relative h-8 rounded bg-muted">
                   {events.map(e => (
-                    <div key={e.id} className="group absolute top-1" style={{ left: `${(e.at / duration) * 100}%` }}>
+                    <div key={e.id} className="group absolute top-1 -translate-x-1/2" style={{ left: `${(e.at / duration) * 100}%` }}>
+                      {/* 24px hit area around a slim severity-coloured marker; the label says what it is. */}
                       <button
-                        title={`${DETECTION_CLASSES[e.alert.detectionClass].label} @ ${fmt(e.at)}`}
+                        aria-label={`${SEVERITY_META[e.alert.severity].label}: ${DETECTION_CLASSES[e.alert.detectionClass].label} at ${fmt(e.at)}. Jump to it`}
                         onClick={() => seek(e.at)}
-                        className="block h-4 w-2 rounded-sm"
-                        style={{ backgroundColor: DETECTION_CLASSES[e.alert.detectionClass].color }}
-                      />
-                      {/* The anonymised evidence snapshot for this detection, shown at its marker. */}
-                      <div className="pointer-events-none absolute bottom-6 left-1/2 z-10 hidden w-44 -translate-x-1/2 space-y-1 rounded-md border bg-popover p-1 shadow-md group-hover:block">
+                        className="flex h-6 w-6 items-center justify-center rounded-sm"
+                      >
+                        <span className={cn('block h-5 w-1.5 rounded-sm', TONE_FILL[e.alert.severity])} aria-hidden />
+                      </button>
+                      {/* The anonymised evidence snapshot for this detection, shown on hover and on keyboard focus. */}
+                      <div className="pointer-events-none absolute bottom-8 left-1/2 z-10 hidden w-44 -translate-x-1/2 space-y-1 rounded-md border bg-popover p-1 shadow-md group-focus-within:block group-hover:block">
                         <SnapshotThumb ev={e} className="aspect-video w-full" />
-                        <p className="px-0.5 text-[10px] text-popover-foreground">
+                        <p className="px-0.5 text-xs text-popover-foreground">
                           {DETECTION_CLASSES[e.alert.detectionClass].label} · {fmt(e.at)}
                           {e.snapshot && ' · faces blurred'}
                         </p>
                       </div>
                     </div>
                   ))}
-                  <div className="absolute top-0 h-6 w-0.5 bg-foreground" style={{ left: `${(currentTime / duration) * 100}%` }} />
+                  <div className="absolute top-0 h-8 w-0.5 bg-foreground" style={{ left: `${(currentTime / duration) * 100}%` }} aria-hidden />
                 </div>
                 {!videoUrl && (
-                  <Slider min={0} max={duration} step={0.5} value={[currentTime]} onValueChange={([v]) => setCurrentTime(v)} />
+                  <Slider aria-label="Playback position" min={0} max={duration} step={0.5} value={[currentTime]} onValueChange={([v]) => setCurrentTime(v)} />
                 )}
-                <p className="text-xs text-muted-foreground">
-                  {fmt(currentTime)} / {fmt(duration)}: hover a marker for its anonymised snapshot, click to jump to it
+                <p className="text-xs text-muted-foreground tabular">
+                  {fmt(currentTime)} / {fmt(duration)}: point at or tab to a marker for its anonymised snapshot, select it to jump there
                 </p>
               </div>
             )}
 
             <div className="flex flex-wrap items-center gap-2">
-              <Input type="file" accept="video/*" onChange={handleFile} className="max-w-xs" />
+              <Input type="file" accept="video/*" onChange={handleFile} className="max-w-xs" aria-label="Upload a video clip" />
               {videoUrl && (
                 <Button
                   variant="outline"
@@ -261,7 +267,7 @@ export default function SandboxPage() {
                   Use sample scene instead
                 </Button>
               )}
-              {!videoUrl && <UploadCloud className="h-4 w-4 text-muted-foreground" />}
+              {!videoUrl && <UploadCloud className="h-4 w-4 text-muted-foreground" aria-hidden />}
             </div>
           </CardContent>
         </Card>
@@ -273,7 +279,7 @@ export default function SandboxPage() {
           </CardHeader>
           <CardContent className="space-y-5">
             <div className="space-y-2">
-              <Label>Zone profile</Label>
+              <Label htmlFor="zone-profile">Zone profile</Label>
               <Select
                 value={zone}
                 onValueChange={v => {
@@ -281,7 +287,7 @@ export default function SandboxPage() {
                   setClasses(ZONE_CLASSES[v as ZoneType]);
                 }}
               >
-                <SelectTrigger>
+                <SelectTrigger id="zone-profile">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -294,29 +300,32 @@ export default function SandboxPage() {
               </Select>
             </div>
             <div className="space-y-2">
-              <Label>Detection classes</Label>
+              <p className="text-sm font-medium leading-none">What to look for</p>
               {DETECTION_CLASS_LIST.map(c => (
-                <label key={c.id} className="flex items-center gap-2 text-sm">
+                <label key={c.id} className="flex items-center gap-3 py-1 text-sm">
                   <Checkbox
                     checked={classes.includes(c.id)}
                     onCheckedChange={v => setClasses(cs => (v ? [...cs, c.id] : cs.filter(x => x !== c.id)))}
                   />
-                  <span className="h-2.5 w-2.5 rounded-sm" style={{ backgroundColor: c.color }} />
-                  {c.label}
+                  <span className="flex-1">{c.label}</span>
+                  <span className="flex items-center gap-1 text-xs text-muted-foreground">
+                    <SeverityIcon severity={c.defaultSeverity} className="h-3.5 w-3.5" />
+                    {SEVERITY_META[c.defaultSeverity].label}
+                  </span>
                 </label>
               ))}
             </div>
             <div className="space-y-2">
               <div className="flex justify-between">
-                <Label>Confidence threshold</Label>
-                <span className="font-mono text-sm">{threshold.toFixed(2)}</span>
+                <Label id="sandbox-conf">Minimum confidence</Label>
+                <span className="text-sm tabular">{Math.round(threshold * 100)}%</span>
               </div>
-              <Slider min={0.3} max={0.95} step={0.05} value={[threshold]} onValueChange={([v]) => setThreshold(Number(v.toFixed(2)))} />
+              <Slider aria-labelledby="sandbox-conf" min={0.3} max={0.95} step={0.05} value={[threshold]} onValueChange={([v]) => setThreshold(Number(v.toFixed(2)))} />
             </div>
             <div className="space-y-2">
-              <Label>Attribute pushed alerts to</Label>
+              <Label htmlFor="target-camera">Send pushed alerts as camera</Label>
               <Select value={targetCamera} onValueChange={setTargetCamera}>
-                <SelectTrigger>
+                <SelectTrigger id="target-camera">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -333,11 +342,11 @@ export default function SandboxPage() {
             <Button className="w-full" disabled={processing || classes.length === 0} onClick={run}>
               {processing ? (
                 <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Running inference…
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" aria-hidden /> Running analysis…
                 </>
               ) : (
                 <>
-                  <PlayCircle className="mr-2 h-4 w-4" /> Run analysis
+                  <PlayCircle className="mr-2 h-4 w-4" aria-hidden /> Run analysis
                 </>
               )}
             </Button>
@@ -359,39 +368,34 @@ export default function SandboxPage() {
           <CardContent className="space-y-2">
             {events.length === 0 && <p className="text-sm text-muted-foreground">No anomalies above the threshold.</p>}
             {events.map(e => (
-              <div key={e.id} className="flex flex-col sm:flex-row sm:items-center gap-3 rounded-md border p-3">
-                <button onClick={() => seek(e.at)} className="shrink-0" title="Jump to this detection">
+              <div key={e.id} className="flex flex-col gap-3 rounded-md border p-3 sm:flex-row sm:items-center">
+                <button onClick={() => seek(e.at)} className="shrink-0 rounded" aria-label={`Jump to ${fmt(e.at)}`}>
                   <SnapshotThumb ev={e} className="h-14 w-24" />
                 </button>
-                <button className="font-mono text-xs text-muted-foreground w-12 text-left underline" onClick={() => seek(e.at)}>
+                <button className="w-12 text-left font-mono text-xs text-link underline underline-offset-2" onClick={() => seek(e.at)}>
                   {fmt(e.at)}
                 </button>
-                <span className="flex flex-wrap items-center gap-2 flex-1 text-sm">
-                  <span className="h-2.5 w-2.5 rounded-sm" style={{ backgroundColor: DETECTION_CLASSES[e.alert.detectionClass].color }} />
+                <span className="flex flex-1 flex-wrap items-center gap-2 text-sm">
+                  <SeverityBadge severity={e.alert.severity} />
                   <span className="font-medium">{DETECTION_CLASSES[e.alert.detectionClass].label}</span>
-                  <Badge variant="outline" className={SEVERITY_META[e.alert.severity].badge}>
-                    {SEVERITY_META[e.alert.severity].label}
-                  </Badge>
                   <span className="text-xs text-muted-foreground">
-                    conf {e.alert.confidence.toFixed(2)} · {e.alert.boxes.length} box{e.alert.boxes.length > 1 ? 'es' : ''}
+                    {Math.round(e.alert.confidence * 100)}% confidence · {e.alert.boxes.length} box{e.alert.boxes.length > 1 ? 'es' : ''}
                     {e.snapshot && ` · anonymised in ${Math.round(e.snapshot.blurMs ?? 0)} ms`}
                     {e.snapshot === null && ' · no snapshot (metadata only)'}
                   </span>
                 </span>
                 {e.pushed ? (
-                  <span className="flex items-center gap-1 text-xs text-emerald-600">
-                    <CheckCircle2 className="h-4 w-4" /> In alert centre
-                  </span>
+                  <StatusBadge tone="success">In alert centre</StatusBadge>
                 ) : (
                   <Button size="sm" variant="outline" onClick={() => push(e)}>
-                    <Send className="h-3.5 w-3.5 mr-1.5" /> Push to alerts
+                    <Send className="mr-2 h-4 w-4" aria-hidden /> Push to alerts
                   </Button>
                 )}
               </div>
             ))}
             {!mockMode && (
-              <p className="flex items-center gap-1.5 pt-1 text-xs text-muted-foreground">
-                <ShieldCheck className="h-3.5 w-3.5 text-emerald-600" /> Evidence snapshots are always anonymised. Pushed
+              <p className="flex items-center gap-2 pt-1 text-xs text-muted-foreground">
+                <ShieldCheck className="h-4 w-4" aria-hidden /> Evidence snapshots are always anonymised. Pushed
                 snapshots follow the retention policy in Settings.
               </p>
             )}

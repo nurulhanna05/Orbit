@@ -3,11 +3,12 @@
 import { useId, useMemo } from 'react';
 import { EyeOff, Users, WifiOff } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import type { Alert, BoundingBox, Camera, DetectionClass } from '@/lib/types';
+import type { Alert, BoundingBox, Camera, DetectionClass, Severity } from '@/lib/types';
 import { useAnomaly } from '@/components/providers/anomaly-provider';
 import { SCENES, Rect } from '@/lib/anomaly/scenes';
 import { ambientBoxes } from '@/lib/anomaly/simulator';
-import { DETECTION_CLASSES, ZONE_LABELS, formatConfidence } from '@/lib/anomaly/taxonomy';
+import { ZONE_LABELS, formatConfidence } from '@/lib/anomaly/taxonomy';
+import { TONE_OVERLAY } from './status';
 
 // Scene is drawn in a 160x90 viewBox; frame percentages map with these factors.
 const X = (p: number) => p * 1.6;
@@ -307,11 +308,10 @@ export function ZoneScene({ camera, boxes, active, privacy }: SceneProps) {
   );
 }
 
-function boxColor(b: BoundingBox, cls?: DetectionClass) {
-  if (cls && b.kind !== 'pedestrian') return DETECTION_CLASSES[cls].color;
-  if (b.kind === 'pedestrian') return b.label.startsWith('Fallen') ? DETECTION_CLASSES.person_fallen.color : '#10b981';
-  if (b.kind === 'vehicle') return '#f97316';
-  return '#eab308';
+// Boxes are coloured by what they mean, not by class: anomalies take their alert's severity colour,
+// and everything the model sees in passing (people, vehicles) is neutral. The class is named in the label.
+function boxTone(severity?: Severity) {
+  return severity ? TONE_OVERLAY[severity] : TONE_OVERLAY.neutral;
 }
 
 export function displayLabel(b: BoundingBox, snapshot: boolean) {
@@ -350,36 +350,36 @@ export default function ZoneFeed({
   const privacy = false;
   const offline = camera.status === 'offline';
   const sceneBoxes = [...ambient, ...incident.map(i => i.box)];
-  const overlay: { box: BoundingBox; cls?: DetectionClass }[] = [
+  const overlay: { box: BoundingBox; cls?: DetectionClass; severity?: Severity }[] = [
     ...ambient.map(box => ({ box })),
-    ...incident.map(i => ({ box: i.box, cls: i.alert.detectionClass })),
+    ...incident.map(i => ({ box: i.box, cls: i.alert.detectionClass, severity: i.alert.severity })),
   ];
 
   return (
     <div className={cn('relative aspect-video w-full overflow-hidden bg-black select-none', className)}>
       {offline ? (
-        <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 bg-[repeating-linear-gradient(45deg,#0f172a,#0f172a_6px,#111827_6px,#111827_12px)] text-slate-400">
-          <WifiOff className="h-6 w-6" />
-          <span className="text-xs font-mono tracking-widest">NO SIGNAL · {camera.id}</span>
+        <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 bg-[repeating-linear-gradient(45deg,#1c1917,#1c1917_6px,#292524_6px,#292524_12px)] text-stone-300">
+          <WifiOff className="h-6 w-6" aria-hidden />
+          <span className="font-mono text-xs tracking-widest">No signal · {camera.id}</span>
         </div>
       ) : (
         <>
           <ZoneScene camera={camera} boxes={sceneBoxes} active={active} privacy={privacy} />
-          {overlay.map(({ box, cls }, i) => {
-            const color = boxColor(box, cls);
+          {overlay.map(({ box, cls, severity }, i) => {
+            const tone = boxTone(severity);
             return (
               <div
                 key={i}
-                className="absolute border-[1.5px] rounded-[2px]"
-                style={{ left: `${box.x}%`, top: `${box.y}%`, width: `${box.w}%`, height: `${box.h}%`, borderColor: color }}
+                className={cn('absolute rounded-[2px]', severity ? 'border-2' : 'border')}
+                style={{ left: `${box.x}%`, top: `${box.y}%`, width: `${box.w}%`, height: `${box.h}%`, borderColor: tone.fill }}
               >
                 {showLabels && (cls || large) && (
                   <span
                     className={cn(
-                      'absolute left-[-1.5px] bottom-full whitespace-nowrap rounded-t-[2px] px-1 font-medium text-white',
-                      large ? 'text-[11px] py-0.5' : 'text-[9px]'
+                      'absolute bottom-full left-[-2px] whitespace-nowrap rounded-t-[2px] px-1 text-2xs font-medium',
+                      large && 'py-0.5'
                     )}
-                    style={{ backgroundColor: color }}
+                    style={{ backgroundColor: tone.fill, color: tone.text }}
                   >
                     {displayLabel(box, privacy)}
                   </span>
@@ -392,31 +392,28 @@ export default function ZoneFeed({
       )}
 
       <div className="absolute top-1.5 left-1.5 flex flex-wrap items-center gap-1">
-        <span
-          className={cn(
-            'rounded px-1.5 py-0.5 text-[10px] font-bold tracking-wide text-white',
-            offline ? 'bg-slate-600' : 'bg-red-600'
-          )}
-        >
-          {offline ? 'OFFLINE' : '● LIVE'}
+        <span className="flex items-center gap-1 rounded bg-black/70 px-1.5 py-0.5 text-2xs font-semibold tracking-wide text-white">
+          {offline ? <WifiOff className="h-3 w-3" aria-hidden /> : <span className="h-1.5 w-1.5 rounded-full bg-white" aria-hidden />}
+          {offline ? 'Offline' : 'Live'}
         </span>
-        <span className="rounded bg-black/60 px-1.5 py-0.5 text-[10px] text-white">{ZONE_LABELS[camera.zone]}</span>
+        <span className="rounded bg-black/70 px-1.5 py-0.5 text-2xs text-white">{ZONE_LABELS[camera.zone]}</span>
       </div>
       {!offline && (
         <div className="absolute top-1.5 right-1.5 flex items-center gap-1">
-          <span className="flex items-center gap-1 rounded bg-black/60 px-1.5 py-0.5 text-[10px] text-white" title="Anonymous head-count">
-            <Users className="h-3 w-3" />
+          <span className="flex items-center gap-1 rounded bg-black/70 px-1.5 py-0.5 text-2xs text-white tabular">
+            <Users className="h-3 w-3" aria-hidden />
+            <span className="sr-only">Anonymous head-count:</span>
             {active.has('crowd_density') ? incident.filter(i => i.box.kind === 'pedestrian').length : camera.crowdCount}
           </span>
           {large && (
-            <span className="flex items-center gap-1 rounded bg-black/60 px-1.5 py-0.5 text-[10px] text-white">
-              <EyeOff className="h-3 w-3" />
+            <span className="flex items-center gap-1 rounded bg-black/70 px-1.5 py-0.5 text-2xs text-white">
+              <EyeOff className="h-3 w-3" aria-hidden />
               Transient · not recorded
             </span>
           )}
         </div>
       )}
-      <div className="absolute bottom-1.5 left-1.5 rounded bg-black/60 px-1.5 py-0.5 font-mono text-[10px] text-white">
+      <div className="absolute bottom-1.5 left-1.5 rounded bg-black/70 px-1.5 py-0.5 font-mono text-2xs text-white tabular">
         {camera.id} · {new Date(camera.lastSeen).toLocaleTimeString('en-MY', { hour12: false })}
       </div>
     </div>

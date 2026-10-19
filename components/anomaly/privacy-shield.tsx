@@ -23,9 +23,12 @@ export function PrivacyStatusBadge({ compact = false }: { compact?: boolean }) {
   return (
     <Popover>
       <PopoverTrigger asChild>
-        <button className="flex items-center gap-2 rounded-full border border-emerald-300 bg-emerald-50 px-3 py-1.5 text-xs font-medium text-emerald-800 transition-colors hover:bg-emerald-100 dark:border-emerald-800 dark:bg-emerald-950 dark:text-emerald-300">
-          <ShieldCheck className="h-4 w-4" />
-          <span>{compact ? 'Snapshots anonymised' : PRIVACY_STATUS}</span>
+        <button
+          className="flex h-9 items-center gap-2 rounded-md border border-foreground/20 bg-card px-3 text-xs font-medium text-foreground transition-colors hover:bg-accent max-md:min-h-11 max-md:min-w-11 max-md:justify-center"
+          aria-label={compact ? `Privacy: ${PRIVACY_STATUS}` : undefined}
+        >
+          <ShieldCheck className="h-4 w-4 shrink-0" aria-hidden />
+          <span className={compact ? 'sr-only sm:not-sr-only' : undefined}>{compact ? 'Snapshots anonymised' : PRIVACY_STATUS}</span>
         </button>
       </PopoverTrigger>
       <PopoverContent className="w-80 max-w-[calc(100vw-2rem)]" align="end">
@@ -44,10 +47,10 @@ export function PrivacyStatusBadge({ compact = false }: { compact?: boolean }) {
             <li>Viewing or exporting a snapshot is logged with the operator&apos;s name</li>
           </ul>
           <div className="border-t pt-2">
-            <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground mb-1">Audit trail</p>
+            <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Audit trail</p>
             <div className="max-h-28 overflow-y-auto space-y-1">
               {audit.slice(0, 6).map(entry => (
-                <p key={entry.id} className="text-[11px] leading-snug">
+                <p key={entry.id} className="text-xs leading-snug">
                   <span className="text-muted-foreground">{new Date(entry.at).toLocaleString()}:</span>{' '}
                   <AuditEntryText entry={entry} />
                 </p>

@@ -5,7 +5,7 @@ import { Download, ImageOff, Loader2, ShieldCheck, Trash2 } from 'lucide-react';
 import type { Alert, BoundingBox, Camera } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import { ZoneScene, displayLabel } from './zone-feed';
-import { DETECTION_CLASSES } from '@/lib/anomaly/taxonomy';
+import { TONE_OVERLAY } from './status';
 import { downloadBlob, getSnapshot, snapshotExpiry } from '@/lib/anomaly/snapshot-store';
 import { useAnomaly } from '@/components/providers/anomaly-provider';
 
@@ -18,7 +18,8 @@ function inCrop(b: BoundingBox, crop: [number, number, number, number] = [0, 0, 
 }
 
 function Boxes({ alert, crop }: { alert: Alert; crop?: [number, number, number, number] }) {
-  const color = DETECTION_CLASSES[alert.detectionClass].color;
+  // Same rule as the live feed: the alert's severity colour, with the class named in the label.
+  const tone = TONE_OVERLAY[alert.severity];
   return (
     <>
       {alert.boxes.map(raw => inCrop(raw, crop)).map((b, i) => (
@@ -30,13 +31,13 @@ function Boxes({ alert, crop }: { alert: Alert; crop?: [number, number, number, 
             top: `${b.y}%`,
             width: `${b.w}%`,
             height: `${b.h}%`,
-            borderColor: b.kind === 'pedestrian' && alert.detectionClass === 'crowd_density' ? '#1baf7a' : color,
+            borderColor: tone.fill,
           }}
         >
           {(alert.boxes.length < 4 || i === 0) && (
             <span
-              className="absolute left-[-2px] bottom-full whitespace-nowrap rounded-t-[2px] px-1 py-0.5 text-[11px] font-medium text-white"
-              style={{ backgroundColor: color }}
+              className="absolute bottom-full left-[-2px] whitespace-nowrap rounded-t-[2px] px-1 py-0.5 text-2xs font-medium"
+              style={{ backgroundColor: tone.fill, color: tone.text }}
             >
               {displayLabel(b, true)}
             </span>
@@ -87,10 +88,10 @@ export function AlertSnapshot({ alert, camera, audited = false }: { alert: Alert
   );
   const notice = (icon: React.ReactNode, title: string, body: string) =>
     frame(
-      <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 p-6 text-center text-slate-300">
+      <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 p-6 text-center text-stone-200">
         {icon}
         <p className="text-sm font-medium">{title}</p>
-        <p className="max-w-md text-xs text-slate-400">{body}</p>
+        <p className="max-w-md text-xs text-stone-300">{body}</p>
       </div>
     );
 
@@ -100,16 +101,16 @@ export function AlertSnapshot({ alert, camera, audited = false }: { alert: Alert
       <>
         <ZoneScene camera={{ ...camera, status: 'online' }} boxes={alert.boxes} active={new Set([alert.detectionClass])} privacy />
         <Boxes alert={alert} />
-        <div className="absolute bottom-1.5 left-1.5 rounded bg-black/60 px-1.5 py-0.5 font-mono text-[10px] text-white">
+        <div className="absolute bottom-1.5 left-1.5 rounded bg-black/70 px-1.5 py-0.5 font-mono text-2xs text-white">
           {alert.cameraId} · {fmtDate(alert.createdAt)}
         </div>
-        <span className="absolute top-1.5 right-1.5 rounded bg-black/60 px-1.5 py-0.5 text-[10px] text-white">Simulated scene</span>
+        <span className="absolute right-1.5 top-1.5 rounded bg-black/70 px-1.5 py-0.5 text-2xs text-white">Simulated scene</span>
       </>
     );
   }
   if (snapshot.status === 'processing') {
     return notice(
-      <Loader2 className="h-6 w-6 animate-spin" />,
+      <Loader2 className="h-6 w-6 animate-spin" aria-hidden />,
       'Anonymising snapshot…',
       'The alert is live already. The snapshot attaches here once the edge node has blurred it.'
     );
@@ -138,11 +139,11 @@ export function AlertSnapshot({ alert, camera, audited = false }: { alert: Alert
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src={url} alt={`Anonymised evidence snapshot for ${alert.id}`} className="absolute inset-0 h-full w-full object-fill" />
           <Boxes alert={alert} crop={snapshot.crop} />
-          <div className="absolute bottom-1.5 left-1.5 rounded bg-black/60 px-1.5 py-0.5 font-mono text-[10px] text-white">
+          <div className="absolute bottom-1.5 left-1.5 rounded bg-black/70 px-1.5 py-0.5 font-mono text-2xs text-white">
             {alert.cameraId} · {fmtDate(snapshot.capturedAt)}
           </div>
-          <span className="absolute top-1.5 right-1.5 flex items-center gap-1 rounded bg-emerald-600/90 px-1.5 py-0.5 text-[10px] text-white">
-            <ShieldCheck className="h-3 w-3" /> Anonymised at edge
+          <span className="absolute right-1.5 top-1.5 flex items-center gap-1 rounded bg-black/70 px-1.5 py-0.5 text-2xs text-white">
+            <ShieldCheck className="h-3 w-3" aria-hidden /> Anonymised at edge
           </span>
         </>
       )}
@@ -159,7 +160,7 @@ export function AlertSnapshot({ alert, camera, audited = false }: { alert: Alert
             logSnapshotAccess(alert.id, 'exported');
           }}
         >
-          <Download className="h-3.5 w-3.5 mr-1.5" /> Export (logged)
+          <Download className="mr-2 h-4 w-4" aria-hidden /> Export (logged)
         </Button>
       </div>
     </div>

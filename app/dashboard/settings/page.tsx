@@ -1,9 +1,10 @@
 "use client"
 
 import { useEffect, useState } from 'react';
-import { Building2, CircleDashed, Clock, FlaskConical, Scale, ScanEye, ShieldCheck } from 'lucide-react';
+import { Building2, CircleDashed, Clock, FlaskConical, Scale, ScanEye, ShieldCheck, TriangleAlert } from 'lucide-react';
 import type { Severity } from '@/lib/types';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { PageHeader } from '@/components/layout/page-header';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -33,34 +34,34 @@ export default function SettingsPage() {
   }, []);
 
   return (
-    <div className="container mx-auto space-y-6 pb-8">
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight">Settings</h1>
-        <p className="text-muted-foreground">Township profile, detection policy, privacy and retention, and demo simulation.</p>
-      </div>
+    <div className="mx-auto max-w-[1600px] space-y-6 pb-8">
+      <PageHeader
+        title="Settings"
+        description="Township profile, detection policy, privacy and retention, and demo simulation."
+      />
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-        <div className="sticky top-0 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 z-10 py-2">
-          <TabsList className="grid grid-cols-5 h-auto">
-            <TabsTrigger value="general" className="flex gap-2 items-center">
+        <div className="sticky top-0 z-10 bg-background py-2">
+          <TabsList className="grid h-auto w-full grid-cols-5" aria-label="Settings sections">
+            <TabsTrigger value="general" className="flex items-center gap-2">
               <Building2 className="h-4 w-4" />
-              <span className="hidden md:block">Township</span>
+              <span className="sr-only md:not-sr-only md:whitespace-nowrap">Township</span>
             </TabsTrigger>
-            <TabsTrigger value="detection" className="flex gap-2 items-center">
+            <TabsTrigger value="detection" className="flex items-center gap-2">
               <ScanEye className="h-4 w-4" />
-              <span className="hidden md:block">Detection</span>
+              <span className="sr-only md:not-sr-only md:whitespace-nowrap">Detection</span>
             </TabsTrigger>
-            <TabsTrigger value="privacy" className="flex gap-2 items-center">
+            <TabsTrigger value="privacy" className="flex items-center gap-2">
               <ShieldCheck className="h-4 w-4" />
-              <span className="hidden md:block">Privacy &amp; Compliance</span>
+              <span className="sr-only md:not-sr-only md:whitespace-nowrap">Privacy &amp; Compliance</span>
             </TabsTrigger>
-            <TabsTrigger value="simulation" className="flex gap-2 items-center">
+            <TabsTrigger value="simulation" className="flex items-center gap-2">
               <FlaskConical className="h-4 w-4" />
-              <span className="hidden md:block">Simulation</span>
+              <span className="sr-only md:not-sr-only md:whitespace-nowrap">Simulation</span>
             </TabsTrigger>
-            <TabsTrigger value="retention" className="flex gap-2 items-center">
+            <TabsTrigger value="retention" className="flex items-center gap-2">
               <Clock className="h-4 w-4" />
-              <span className="hidden md:block">Retention</span>
+              <span className="sr-only md:not-sr-only md:whitespace-nowrap">Retention</span>
             </TabsTrigger>
           </TabsList>
         </div>
@@ -151,13 +152,11 @@ function DetectionSettings() {
           {DETECTION_CLASS_LIST.map(c => (
             <div key={c.id} className="space-y-2">
               <div className="flex items-center justify-between">
-                <Label className="flex items-center gap-2">
-                  <span className="h-2.5 w-2.5 rounded-sm" style={{ backgroundColor: c.color }} />
-                  {c.label} <code className="text-[10px] text-muted-foreground">{c.id}</code>
-                </Label>
-                <span className="font-mono text-sm">{settings.classThresholds[c.id].toFixed(2)}</span>
+                <Label id={`thr-${c.id}`}>{c.label}</Label>
+                <span className="text-sm tabular">{Math.round(settings.classThresholds[c.id] * 100)}%</span>
               </div>
               <Slider
+                aria-labelledby={`thr-${c.id}`}
                 min={0.3}
                 max={0.95}
                 step={0.05}
@@ -212,7 +211,7 @@ function Checklist({ items }: { items: string[] }) {
     <ul className="space-y-1.5 text-sm">
       {items.map(t => (
         <li key={t} className="flex gap-2">
-          <ShieldCheck className="h-4 w-4 shrink-0 text-emerald-600 mt-0.5" />
+          <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" aria-hidden />
           {t}
         </li>
       ))}
@@ -230,8 +229,8 @@ function PrivacySettings() {
           <CardDescription>Privacy-by-design, aligned with the principles of Malaysia&apos;s PDPA 2010.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-5">
-          <div className="flex items-center gap-2 rounded-md border border-emerald-200 bg-emerald-50 p-3 text-sm font-medium text-emerald-900 dark:border-emerald-900 dark:bg-emerald-950/50 dark:text-emerald-200">
-            <ShieldCheck className="h-4 w-4 shrink-0" />
+          <div className="flex items-center gap-2 rounded-md border bg-muted p-3 text-sm font-medium">
+            <ShieldCheck className="h-4 w-4 shrink-0" aria-hidden />
             {PRIVACY_STATUS}
           </div>
 
@@ -270,8 +269,11 @@ function PrivacySettings() {
             />
           </section>
 
-          <section className="rounded-md border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900 dark:border-amber-900 dark:bg-amber-950/40 dark:text-amber-200">
-            <p className="font-semibold">Signage reminder</p>
+          <section className="rounded-md border border-warning/40 bg-warning-soft p-3 text-sm text-warning-fg">
+            <p className="flex items-center gap-2 font-semibold">
+              <TriangleAlert className="h-4 w-4 shrink-0" aria-hidden />
+              Signage reminder
+            </p>
             <p className="mt-1 text-xs">
               Put up a clear notice at every monitored zone saying that cameras are in use, why, who operates them and
               how to contact the township management office.
@@ -289,7 +291,7 @@ function PrivacySettings() {
                 'Move the audit trail to an append-only server log',
               ].map(t => (
                 <li key={t} className="flex gap-2">
-                  <CircleDashed className="h-4 w-4 shrink-0 text-muted-foreground mt-0.5" />
+                  <CircleDashed className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" aria-hidden />
                   {t}
                 </li>
               ))}

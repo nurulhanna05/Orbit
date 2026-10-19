@@ -69,32 +69,38 @@ export default function NavLinks({ onNavigate }: { onNavigate?: () => void }) {
     .sort((a, b) => b.length - a.length)[0];
 
   return (
-    <nav className="flex flex-col gap-5">
+    <nav aria-label="Main" className="flex flex-col gap-6">
       {NAV_SECTIONS.map(section => (
         <div key={section.label} className="flex flex-col gap-1">
-          <p className="px-3 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+          <p className="px-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
             {section.label}
           </p>
           {section.items.map(item => {
             const Icon = item.icon;
             const count = item.badge ? counts[item.badge] : 0;
+            const active = activeHref === item.href;
             return (
               <Link
                 key={item.href}
                 href={item.href}
                 onClick={onNavigate}
+                aria-current={active ? 'page' : undefined}
                 className={cn(
                   buttonVariants({ variant: 'ghost', size: 'sm' }),
-                  'justify-start w-full gap-2 transition-colors',
-                  activeHref === item.href ? 'bg-muted font-medium' : 'hover:bg-muted/50'
+                  'relative w-full justify-start gap-3 font-normal',
+                  // Active item: brand-red indicator bar plus weight, so it never relies on colour alone.
+                  active
+                    ? 'bg-accent font-semibold text-foreground before:absolute before:inset-y-1.5 before:left-0 before:w-1 before:rounded-full before:bg-primary'
+                    : 'text-muted-foreground hover:text-foreground'
                 )}
               >
-                <Icon className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
+                <Icon className="h-4 w-4 shrink-0" aria-hidden />
                 <span className="flex-1 text-left">{item.title}</span>
                 {count > 0 && (
                   <Badge
-                    variant={item.badge === 'alerts' ? 'destructive' : 'secondary'}
-                    className="h-5 min-w-5 px-1.5 justify-center text-[10px]"
+                    variant={item.badge === 'alerts' ? 'default' : 'secondary'}
+                    className="min-w-5 justify-center px-1.5"
+                    aria-label={`${count} open`}
                   >
                     {count}
                   </Badge>

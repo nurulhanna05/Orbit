@@ -9,7 +9,7 @@ export type DetectionClassMeta = {
   assetType?: AssetType;
   healthImpactPct?: number;
   lifeImpactMonths?: number;
-  // Hex colour used for boxes and charts.
+  // Legacy per-class hex. The UI colours by severity (components/anomaly/status.tsx) and names the class in text.
   color: string;
 };
 
@@ -75,20 +75,20 @@ export const DETECTION_CLASS_LIST = Object.values(DETECTION_CLASSES);
 export const SEVERITY_META: Record<Severity, { label: string; badge: string; dot: string; rank: number }> = {
   critical: {
     label: 'Critical',
-    badge: 'bg-red-100 text-red-800 border-red-200 dark:bg-red-950 dark:text-red-300 dark:border-red-900',
-    dot: 'bg-red-500',
+    badge: 'border-critical/30 bg-critical-soft text-critical-fg',
+    dot: 'bg-critical',
     rank: 0,
   },
   warning: {
     label: 'Warning',
-    badge: 'bg-amber-100 text-amber-800 border-amber-200 dark:bg-amber-950 dark:text-amber-300 dark:border-amber-900',
-    dot: 'bg-amber-500',
+    badge: 'border-warning/40 bg-warning-soft text-warning-fg',
+    dot: 'bg-warning',
     rank: 1,
   },
   info: {
     label: 'Info',
-    badge: 'bg-sky-100 text-sky-800 border-sky-200 dark:bg-sky-950 dark:text-sky-300 dark:border-sky-900',
-    dot: 'bg-sky-500',
+    badge: 'border-info/30 bg-info-soft text-info-fg',
+    dot: 'bg-info',
     rank: 2,
   },
 };

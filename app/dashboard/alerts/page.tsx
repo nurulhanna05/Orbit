@@ -22,7 +22,8 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { useAnomaly } from '@/components/providers/anomaly-provider';
-import { SimulateMenu } from '@/components/anomaly/simulate-menu';
+import { PageHeader } from '@/components/layout/page-header';
+import { SeverityBadge, TONE_ICON } from '@/components/anomaly/status';
 import { AlertSnapshot } from '@/components/anomaly/alert-snapshot';
 import { CONTRACTORS, nameOf } from '@/lib/anomaly/seed';
 import { DETECTION_CLASSES, DETECTION_CLASS_LIST, SEVERITY_META, ZONE_LABELS } from '@/lib/anomaly/taxonomy';
@@ -59,48 +60,50 @@ export default function AlertsPage() {
   const focused = focus ? alerts.find(a => a.id === focus) : undefined;
 
   return (
-    <div className="container mx-auto space-y-6">
-      <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">Alert Centre</h1>
-          <p className="text-muted-foreground">
-            Operational and maintenance anomalies across the township. Dispatch crews, raise tickets, and close the loop.
-          </p>
-        </div>
-        <div className="flex gap-2">
+    <div className="mx-auto max-w-[1600px] space-y-6">
+      <PageHeader
+        title="Alert Centre"
+        description="Which anomalies need action? Dispatch a crew, raise a ticket, or resolve."
+        actions={
           <Button variant="outline" size="sm" onClick={markAllAlertsRead}>
             Mark all read
           </Button>
-          <SimulateMenu />
-        </div>
-      </div>
+        }
+      />
 
-      <div className="grid grid-cols-3 gap-3 max-w-xl">
-        {(['critical', 'warning', 'info'] as Severity[]).map(s => (
-          <button
-            key={s}
-            onClick={() => setSeverity(severity === s ? 'all' : s)}
-            className={cn('rounded-lg border p-3 text-left transition-colors', SEVERITY_META[s].badge, severity === s && 'ring-2 ring-offset-1 ring-current')}
-          >
-            <p className="text-xs font-medium">{SEVERITY_META[s].label}</p>
-            <p className="text-2xl font-bold tabular-nums">{countBy(s)}</p>
-          </button>
-        ))}
-      </div>
-
-      <div className="flex flex-col lg:flex-row gap-3">
-        <div className="relative flex-1 max-w-sm">
-          <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-          <Input placeholder="Search camera, message or ID…" className="pl-8" value={query} onChange={e => setQuery(e.target.value)} />
+      {/* One severity filter, with the open count on each option (replaces the separate count tiles). */}
+      <div className="flex flex-col gap-3 lg:flex-row lg:items-center">
+        <div className="relative w-full lg:max-w-sm">
+          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" aria-hidden />
+          <Input
+            aria-label="Search alerts"
+            placeholder="Search camera, message or ID"
+            className="pl-9"
+            value={query}
+            onChange={e => setQuery(e.target.value)}
+          />
         </div>
-        <ToggleGroup type="single" value={severity} onValueChange={v => setSeverity((v || 'all') as Severity | 'all')} className="justify-start">
+        <ToggleGroup
+          type="single"
+          aria-label="Filter by severity"
+          value={severity}
+          onValueChange={v => setSeverity((v || 'all') as Severity | 'all')}
+          className="flex-wrap justify-start"
+        >
           <ToggleGroupItem value="all" size="sm">All</ToggleGroupItem>
-          <ToggleGroupItem value="critical" size="sm">Critical</ToggleGroupItem>
-          <ToggleGroupItem value="warning" size="sm">Warning</ToggleGroupItem>
-          <ToggleGroupItem value="info" size="sm">Info</ToggleGroupItem>
+          {(['critical', 'warning', 'info'] as Severity[]).map(s => {
+            const Icon = TONE_ICON[s];
+            return (
+              <ToggleGroupItem key={s} value={s} size="sm" className="gap-1.5">
+                <Icon className="h-4 w-4" aria-hidden />
+                {SEVERITY_META[s].label}
+                <span className="tabular text-xs opacity-80">{countBy(s)}</span>
+              </ToggleGroupItem>
+            );
+          })}
         </ToggleGroup>
         <Select value={cls} onValueChange={v => setCls(v as DetectionClass | 'all')}>
-          <SelectTrigger className="w-[200px]">
+          <SelectTrigger className="w-full sm:w-[200px]" aria-label="Filter by class">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
@@ -119,12 +122,12 @@ export default function AlertsPage() {
           <TabsTrigger value="open">Open ({open.length})</TabsTrigger>
           <TabsTrigger value="history">Resolved history ({resolved.length})</TabsTrigger>
         </TabsList>
-        <TabsContent value="open" className="space-y-3 mt-4">
+        <TabsContent value="open" className="mt-4 space-y-3">
           {open.length === 0 && (
             <Card>
-              <CardContent className="py-10 text-center text-muted-foreground">
-                <CheckCircle2 className="h-8 w-8 mx-auto mb-2 text-emerald-500" />
-                No open anomalies. Use “Simulate incident” to run the demo flow.
+              <CardContent className="py-12 text-center text-sm text-muted-foreground">
+                <CheckCircle2 className="mx-auto mb-2 h-8 w-8 text-success" aria-hidden />
+                No open anomalies. Use Simulate incident in the top bar to run the demo flow.
               </CardContent>
             </Card>
           )}
@@ -155,43 +158,37 @@ function AlertRow({ alert, highlighted, onSnapshot }: { alert: Alert; highlighte
   }, [highlighted]);
 
   return (
-    <Card className={cn('overflow-hidden border-l-4', highlighted && 'ring-2 ring-emerald-500', !alert.read && 'bg-muted/30')} style={{ borderLeftColor: meta.color }}>
+    <Card className={cn(highlighted && 'ring-2 ring-ring ring-offset-2 ring-offset-background', !alert.read && 'bg-accent/50')}>
       <CardContent className="p-4">
-        <div className="flex flex-col lg:flex-row lg:items-start gap-3">
-          <div className="flex-1 min-w-0">
+        <div className="flex flex-col gap-3 lg:flex-row lg:items-start">
+          <div className="min-w-0 flex-1">
             <div className="flex flex-wrap items-center gap-2">
-              <span className="font-semibold">{meta.label}</span>
-              <Badge variant="outline" className={SEVERITY_META[alert.severity].badge}>
-                {SEVERITY_META[alert.severity].label}
-              </Badge>
+              <SeverityBadge severity={alert.severity} />
+              <h2 className="text-base font-semibold">{meta.label}</h2>
               {alert.status === 'dispatched' ? (
-                <Badge variant="secondary">Dispatched · {nameOf(alert.dispatchedTo)}</Badge>
+                <Badge variant="secondary">Dispatched to {nameOf(alert.dispatchedTo)}</Badge>
               ) : (
                 <Badge variant="outline">Awaiting action</Badge>
               )}
-              {alert.ticketId && (
-                <Badge variant="outline" className="font-mono">
-                  {alert.ticketId}
-                </Badge>
-              )}
-              {!alert.read && <span className="h-2 w-2 rounded-full bg-emerald-500" title="Unread" />}
+              {alert.ticketId && <Badge variant="outline">Ticket {alert.ticketId}</Badge>}
+              {!alert.read && <span className="text-xs font-semibold">New</span>}
             </div>
-            <p className="text-sm mt-1">{alert.message}</p>
-            <p className="text-xs text-muted-foreground mt-1">
-              {alert.cameraName} ({alert.cameraId}) · {ZONE_LABELS[alert.zone]} · conf {alert.confidence.toFixed(2)} ·{' '}
-              {formatDistanceToNow(new Date(alert.createdAt), { addSuffix: true })} · <span className="font-mono">{alert.id}</span>
+            <p className="mt-1 text-sm">{alert.message}</p>
+            <p className="mt-1 text-xs text-muted-foreground">
+              {alert.cameraName} ({alert.cameraId}) · {ZONE_LABELS[alert.zone]} · {Math.round(alert.confidence * 100)}% confidence ·{' '}
+              {formatDistanceToNow(new Date(alert.createdAt), { addSuffix: true })} · ID <span className="font-mono">{alert.id}</span>
             </p>
           </div>
-          <div className="flex flex-wrap gap-2 shrink-0">
+          <div className="flex shrink-0 flex-wrap gap-2">
             <Button size="sm" variant="outline" onClick={onSnapshot}>
               {alert.snapshot?.status === 'processing' ? (
                 <>
-                  <Loader2 className="h-4 w-4 mr-1.5 animate-spin" />
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" aria-hidden />
                   Snapshot…
                 </>
               ) : (
                 <>
-                  <ImageIcon className="h-4 w-4 mr-1.5" />
+                  <ImageIcon className="mr-2 h-4 w-4" aria-hidden />
                   {alert.snapshot ? 'Snapshot' : 'Frame'}
                 </>
               )}
@@ -199,7 +196,7 @@ function AlertRow({ alert, highlighted, onSnapshot }: { alert: Alert; highlighte
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button size="sm" variant="outline">
-                  <Send className="h-4 w-4 mr-1.5" />
+                  <Send className="mr-2 h-4 w-4" aria-hidden />
                   Dispatch
                 </Button>
               </DropdownMenuTrigger>
@@ -224,22 +221,30 @@ function AlertRow({ alert, highlighted, onSnapshot }: { alert: Alert; highlighte
             {alert.ticketId ? (
               <Button size="sm" variant="outline" asChild>
                 <Link href={`/dashboard/tickets?focus=${alert.ticketId}`}>
-                  <Ticket className="h-4 w-4 mr-1.5" />
+                  <Ticket className="mr-2 h-4 w-4" aria-hidden />
                   View ticket
                 </Link>
               </Button>
             ) : (
               <Button size="sm" variant="outline" onClick={() => createTicketFromAlert(alert.id)}>
-                <Ticket className="h-4 w-4 mr-1.5" />
+                <Ticket className="mr-2 h-4 w-4" aria-hidden />
                 Raise ticket
               </Button>
             )}
-            <Button size="sm" onClick={() => resolveAlert(alert.id)}>
-              <CheckCircle2 className="h-4 w-4 mr-1.5" />
+            {/* Row actions are all secondary: the page has many rows, so none of them gets the primary style. */}
+            <Button size="sm" variant="outline" onClick={() => resolveAlert(alert.id)}>
+              <CheckCircle2 className="mr-2 h-4 w-4" aria-hidden />
               Resolve
             </Button>
-            <Button size="icon" variant="ghost" className="h-9 w-9" onClick={() => setExpanded(e => !e)} title="Timeline">
-              <ChevronDown className={cn('h-4 w-4 transition-transform', expanded && 'rotate-180')} />
+            <Button
+              size="icon"
+              variant="ghost"
+              className="h-9 w-9"
+              onClick={() => setExpanded(e => !e)}
+              aria-expanded={expanded}
+              aria-label={expanded ? 'Hide timeline' : 'Show timeline'}
+            >
+              <ChevronDown className={cn('h-4 w-4 transition-transform', expanded && 'rotate-180')} aria-hidden />
             </Button>
           </div>
         </div>
@@ -266,7 +271,7 @@ function HistoryTable({ alerts, onSnapshot }: { alerts: Alert[]; onSnapshot: (a:
     <Card>
       <CardContent className="p-0 overflow-x-auto">
         <table className="w-full text-sm">
-          <thead className="border-b bg-muted/40 text-left text-xs text-muted-foreground">
+          <thead className="border-b bg-muted text-left text-xs text-muted-foreground">
             <tr>
               <th className="p-3 font-medium">Detected</th>
               <th className="p-3 font-medium">Class</th>
@@ -280,24 +285,22 @@ function HistoryTable({ alerts, onSnapshot }: { alerts: Alert[]; onSnapshot: (a:
           <tbody>
             {alerts.slice(0, limit).map(a => (
               <tr key={a.id} className="border-b last:border-0">
-                <td className="p-3 whitespace-nowrap text-xs">{new Date(a.createdAt).toLocaleString('en-MY', { hour12: false })}</td>
+                <td className="whitespace-nowrap p-3 text-xs tabular">{new Date(a.createdAt).toLocaleString('en-MY', { hour12: false })}</td>
                 <td className="p-3">{DETECTION_CLASSES[a.detectionClass].label}</td>
                 <td className="p-3">
-                  <Badge variant="outline" className={SEVERITY_META[a.severity].badge}>
-                    {SEVERITY_META[a.severity].label}
-                  </Badge>
+                  <SeverityBadge severity={a.severity} />
                 </td>
                 <td className="p-3 text-xs">{a.cameraName}</td>
                 <td className="p-3 text-xs">{nameOf(a.dispatchedTo)}</td>
-                <td className="p-3 text-xs">
+                <td className="p-3 text-xs tabular">
                   {a.resolvedAt ? formatDistanceStrict(new Date(a.resolvedAt), new Date(a.createdAt)) : '-'}
                 </td>
-                <td className="p-3 text-right whitespace-nowrap">
-                  <Button size="sm" variant="ghost" onClick={() => onSnapshot(a)}>
-                    <ImageIcon className="h-4 w-4" />
+                <td className="whitespace-nowrap p-3 text-right">
+                  <Button size="icon" variant="ghost" className="h-9 w-9" onClick={() => onSnapshot(a)} aria-label={`View snapshot for ${a.id}`}>
+                    <ImageIcon className="h-4 w-4" aria-hidden />
                   </Button>
-                  <Button size="sm" variant="outline" onClick={() => reopenAlert(a.id)}>
-                    <RotateCcw className="h-3.5 w-3.5 mr-1" />
+                  <Button size="sm" variant="outline" className="ml-2" onClick={() => reopenAlert(a.id)}>
+                    <RotateCcw className="mr-2 h-4 w-4" aria-hidden />
                     Re-open
                   </Button>
                 </td>

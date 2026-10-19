@@ -24,7 +24,9 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { useAnomaly } from '@/components/providers/anomaly-provider';
 import ZoneFeed from '@/components/anomaly/zone-feed';
 import { CameraViewerDialog } from '@/components/anomaly/camera-viewer';
-import { DETECTION_CLASS_LIST, SEVERITY_META, ZONE_LABELS } from '@/lib/anomaly/taxonomy';
+import { DETECTION_CLASSES, DETECTION_CLASS_LIST, ZONE_LABELS } from '@/lib/anomaly/taxonomy';
+import { PageHeader } from '@/components/layout/page-header';
+import { SeverityBadge } from '@/components/anomaly/status';
 
 const INTERVALS = [1, 2, 5, 10, 30];
 
@@ -48,26 +50,30 @@ export default function CamerasPage() {
   });
 
   return (
-    <div className="container mx-auto space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight">Cameras</h1>
-        <p className="text-muted-foreground">
-          Toggle feeds, tune confidence thresholds and inference intervals, and choose which anomaly classes each zone watches.
-        </p>
-      </div>
+    <div className="mx-auto max-w-[1600px] space-y-6">
+      <PageHeader
+        title="Cameras"
+        description="Is each camera on and set up right? Switch feeds, tune confidence and interval, and choose what each zone watches for."
+      />
 
-      <div className="flex flex-col sm:flex-row gap-3">
-        <div className="relative flex-1 max-w-sm">
-          <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-          <Input placeholder="Search by name, zone or location…" className="pl-8" value={query} onChange={e => setQuery(e.target.value)} />
+      <div className="flex flex-col gap-3 sm:flex-row">
+        <div className="relative w-full sm:max-w-sm">
+          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" aria-hidden />
+          <Input
+            aria-label="Search cameras"
+            placeholder="Search by name, zone or location"
+            className="pl-9"
+            value={query}
+            onChange={e => setQuery(e.target.value)}
+          />
         </div>
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button variant="outline" size="sm" className="h-10">
-              <Filter className="h-4 w-4 mr-2" />
+              <Filter className="mr-2 h-4 w-4" aria-hidden />
               Filters
               {activeFilterCount > 0 && (
-                <Badge variant="secondary" className="ml-2 h-5 w-5 p-0 justify-center">
+                <Badge variant="secondary" className="ml-2 min-w-5 justify-center px-1" aria-label={`${activeFilterCount} active`}>
                   {activeFilterCount}
                 </Badge>
               )}
@@ -89,48 +95,53 @@ export default function CamerasPage() {
         </DropdownMenu>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
         {visible.map(camera => {
           const open = openAlerts(camera.id);
           return (
-            <Card key={camera.id} className={camera.status === 'offline' ? 'opacity-80' : undefined}>
-              <CardHeader className="pb-2">
+            <Card key={camera.id}>
+              <CardHeader className="p-4 pb-2">
                 <div className="flex items-start justify-between gap-2">
                   <div>
-                    <CardTitle className="text-base">{camera.name}</CardTitle>
+                    <CardTitle>{camera.name}</CardTitle>
                     <CardDescription>
                       {ZONE_LABELS[camera.zone]} · {camera.location}
                     </CardDescription>
                   </div>
                   <div className="flex items-center gap-2">
-                    <Label htmlFor={`sw-${camera.id}`} className="text-xs text-muted-foreground">
+                    <Label htmlFor={`sw-${camera.id}`} className="text-xs font-normal text-muted-foreground">
                       {camera.status === 'online' ? 'Online' : 'Offline'}
                     </Label>
                     <Switch id={`sw-${camera.id}`} checked={camera.status === 'online'} onCheckedChange={() => toggleCamera(camera.id)} />
                   </div>
                 </div>
               </CardHeader>
-              <CardContent className="space-y-3">
-                <button className="block w-full overflow-hidden rounded-md" onClick={() => setViewing(camera)}>
+              <CardContent className="space-y-3 p-4 pt-2">
+                <button
+                  className="block w-full overflow-hidden rounded-md"
+                  onClick={() => setViewing(camera)}
+                  aria-label={`Open the anonymised viewer for ${camera.name}`}
+                >
                   <ZoneFeed camera={camera} showLabels={false} />
                 </button>
-                <div className="flex flex-wrap gap-1">
+                <div className="flex min-h-6 flex-wrap gap-2">
                   {open.length === 0 ? (
-                    <Badge variant="outline" className="text-[10px]">No open anomalies</Badge>
+                    <span className="text-xs text-muted-foreground">No open anomalies</span>
                   ) : (
                     open.map(a => (
-                      <Badge key={a.id} variant="outline" className={`text-[10px] ${SEVERITY_META[a.severity].badge}`}>
-                        {SEVERITY_META[a.severity].label}: {a.detectionClass}
-                      </Badge>
+                      <SeverityBadge key={a.id} severity={a.severity}>
+                        {DETECTION_CLASSES[a.detectionClass].label}
+                      </SeverityBadge>
                     ))
                   )}
                 </div>
-                <div className="flex items-center justify-between text-xs text-muted-foreground">
-                  <span>
-                    conf ≥ {camera.confidenceThreshold.toFixed(2)} · every {camera.inferenceIntervalSec}s · {camera.enabledClasses.length} classes
+                <div className="flex items-center justify-between gap-2 text-xs text-muted-foreground">
+                  <span className="tabular">
+                    Min. confidence {Math.round(camera.confidenceThreshold * 100)}% · every {camera.inferenceIntervalSec} s ·{' '}
+                    {camera.enabledClasses.length} classes
                   </span>
-                  <Button size="sm" variant="outline" className="h-7" onClick={() => setConfiguring(camera.id)}>
-                    <SlidersHorizontal className="h-3.5 w-3.5 mr-1" />
+                  <Button size="sm" variant="outline" className="h-8 shrink-0" onClick={() => setConfiguring(camera.id)}>
+                    <SlidersHorizontal className="mr-2 h-4 w-4" aria-hidden />
                     Configure
                   </Button>
                 </div>
@@ -138,7 +149,7 @@ export default function CamerasPage() {
             </Card>
           );
         })}
-        {visible.length === 0 && <p className="text-muted-foreground text-sm">No cameras match these filters.</p>}
+        {visible.length === 0 && <p className="text-sm text-muted-foreground">No cameras match these filters.</p>}
       </div>
 
       <CameraConfigDialog cameraId={configuring} onClose={() => setConfiguring(null)} />
@@ -163,10 +174,11 @@ function CameraConfigDialog({ cameraId, onClose }: { cameraId: string | null; on
             <div className="space-y-6">
               <div className="space-y-2">
                 <div className="flex justify-between">
-                  <Label>Confidence threshold</Label>
-                  <span className="text-sm font-mono">{camera.confidenceThreshold.toFixed(2)}</span>
+                  <Label id="conf-label">Minimum confidence</Label>
+                  <span className="text-sm tabular">{Math.round(camera.confidenceThreshold * 100)}%</span>
                 </div>
                 <Slider
+                  aria-labelledby="conf-label"
                   min={0.3}
                   max={0.95}
                   step={0.05}
@@ -176,30 +188,30 @@ function CameraConfigDialog({ cameraId, onClose }: { cameraId: string | null; on
                 <p className="text-xs text-muted-foreground">Detections below this confidence are discarded on the edge.</p>
               </div>
               <div className="space-y-2">
-                <Label>Inference interval</Label>
+                <Label htmlFor="interval">How often to check</Label>
                 <Select
                   value={String(camera.inferenceIntervalSec)}
                   onValueChange={v => updateCamera(camera.id, { inferenceIntervalSec: Number(v) })}
                 >
-                  <SelectTrigger>
+                  <SelectTrigger id="interval">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
                     {INTERVALS.map(i => (
                       <SelectItem key={i} value={String(i)}>
-                        Every {i}s
+                        Every {i} s
                       </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
               </div>
               <div className="space-y-2">
-                <Label>Detection classes</Label>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                <p className="text-sm font-medium leading-none">What this camera watches for</p>
+                <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
                   {DETECTION_CLASS_LIST.map(cls => {
                     const checked = camera.enabledClasses.includes(cls.id);
                     return (
-                      <label key={cls.id} className="flex items-start gap-2 rounded-md border p-2 text-sm cursor-pointer">
+                      <label key={cls.id} className="flex cursor-pointer items-start gap-3 rounded-md border p-3 text-sm hover:bg-accent">
                         <Checkbox
                           checked={checked}
                           onCheckedChange={v =>
@@ -212,7 +224,7 @@ function CameraConfigDialog({ cameraId, onClose }: { cameraId: string | null; on
                         />
                         <span>
                           <span className="font-medium">{cls.label}</span>
-                          <code className="block text-[10px] text-muted-foreground">{cls.id}</code>
+                          <span className="block text-xs text-muted-foreground">{cls.description}</span>
                         </span>
                       </label>
                     );

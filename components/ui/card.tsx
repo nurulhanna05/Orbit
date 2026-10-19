@@ -9,7 +9,7 @@ const Card = React.forwardRef<
   <div
     ref={ref}
     className={cn(
-      'rounded-lg border bg-card text-card-foreground shadow-sm',
+      'rounded-lg border bg-card text-card-foreground',
       className
     )}
     {...props}
@@ -29,18 +29,12 @@ const CardHeader = React.forwardRef<
 ));
 CardHeader.displayName = 'CardHeader';
 
+// h2 by default: pages own the only h1. Pass `as` for a card nested under another heading.
 const CardTitle = React.forwardRef<
-  HTMLParagraphElement,
-  React.HTMLAttributes<HTMLHeadingElement>
->(({ className, ...props }, ref) => (
-  <h3
-    ref={ref}
-    className={cn(
-      'text-2xl font-semibold leading-none tracking-tight',
-      className
-    )}
-    {...props}
-  />
+  HTMLHeadingElement,
+  React.HTMLAttributes<HTMLHeadingElement> & { as?: 'h1' | 'h2' | 'h3' | 'h4' }
+>(({ className, as: Tag = 'h2', ...props }, ref) => (
+  <Tag ref={ref} className={cn('text-base font-semibold leading-tight', className)} {...props} />
 ));
 CardTitle.displayName = 'CardTitle';
 

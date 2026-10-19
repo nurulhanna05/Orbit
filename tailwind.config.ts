@@ -9,6 +9,12 @@ const config: Config = {
   ],
   theme: {
     extend: {
+      // Tailwind 3.3 has no spacing scale for min sizes; this backs min-h-11 / min-w-11 (44px touch targets).
+      minHeight: ({ theme }) => theme('spacing'),
+      minWidth: ({ theme }) => theme('spacing'),
+      fontSize: {
+        '2xs': ['0.6875rem', { lineHeight: '1rem' }],
+      },
       backgroundImage: {
         'gradient-radial': 'radial-gradient(var(--tw-gradient-stops))',
         'gradient-conic':
@@ -53,12 +59,40 @@ const config: Config = {
         border: 'hsl(var(--border))',
         input: 'hsl(var(--input))',
         ring: 'hsl(var(--ring))',
+        brand: {
+          DEFAULT: 'hsl(var(--primary))',
+          strong: 'hsl(var(--brand-strong))',
+          foreground: 'hsl(var(--primary-foreground))',
+        },
+        link: 'hsl(var(--link))',
+        gold: {
+          DEFAULT: 'hsl(var(--gold))',
+          foreground: 'hsl(var(--gold-foreground))',
+        },
+        coral: 'hsl(var(--coral))',
+        critical: {
+          DEFAULT: 'hsl(var(--critical))',
+          soft: 'hsl(var(--critical-soft))',
+          fg: 'hsl(var(--critical-fg))',
+        },
+        warning: {
+          DEFAULT: 'hsl(var(--warning))',
+          soft: 'hsl(var(--warning-soft))',
+          fg: 'hsl(var(--warning-fg))',
+        },
+        info: {
+          DEFAULT: 'hsl(var(--info))',
+          soft: 'hsl(var(--info-soft))',
+          fg: 'hsl(var(--info-fg))',
+        },
+        success: {
+          DEFAULT: 'hsl(var(--success))',
+          soft: 'hsl(var(--success-soft))',
+          fg: 'hsl(var(--success-fg))',
+        },
         chart: {
-          '1': 'hsl(var(--chart-1))',
-          '2': 'hsl(var(--chart-2))',
-          '3': 'hsl(var(--chart-3))',
-          '4': 'hsl(var(--chart-4))',
-          '5': 'hsl(var(--chart-5))',
+          muted: 'hsl(var(--chart-muted))',
+          strong: 'hsl(var(--chart-strong))',
         },
       },
       keyframes: {

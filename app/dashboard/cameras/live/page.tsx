@@ -5,14 +5,14 @@ import { Grid2X2, Grid3X3, Maximize2 } from 'lucide-react';
 import type { Camera, ZoneType } from '@/lib/types';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useAnomaly } from '@/components/providers/anomaly-provider';
 import ZoneFeed from '@/components/anomaly/zone-feed';
 import { CameraViewerDialog } from '@/components/anomaly/camera-viewer';
 import { SimulateMenu } from '@/components/anomaly/simulate-menu';
-import { PrivacyStatusBadge } from '@/components/anomaly/privacy-shield';
-import { DETECTION_CLASSES, SEVERITY_META, ZONE_LABELS } from '@/lib/anomaly/taxonomy';
+import { PageHeader } from '@/components/layout/page-header';
+import { SeverityBadge } from '@/components/anomaly/status';
+import { DETECTION_CLASSES, ZONE_LABELS } from '@/lib/anomaly/taxonomy';
 
 export default function LiveZonesPage() {
   const { cameras, alerts } = useAnomaly();
@@ -23,27 +23,36 @@ export default function LiveZonesPage() {
   const zones = Array.from(new Set(cameras.map(c => c.zone)));
   const visible = cameras.filter(c => zone === 'all' || c.zone === zone);
   const openFor = (id: string) => alerts.filter(a => a.cameraId === id && a.status !== 'resolved');
+  const online = cameras.filter(c => c.status === 'online');
 
   return (
-    <div className="flex flex-col gap-4">
-      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3">
-        <div>
-          <h1 className="text-2xl font-bold">Live Zones</h1>
-          <p className="text-muted-foreground text-sm">
-            Multi-feed view of township zones. Boxes describe object states and anonymous behaviour, never who someone is.
-          </p>
-        </div>
-        <div className="flex flex-wrap items-center gap-2">
-          <PrivacyStatusBadge compact />
-          <SimulateMenu />
-          <Button variant="outline" size="icon" onClick={() => setLayout(layout === '2x2' ? '3x3' : '2x2')} title="Toggle grid">
-            {layout === '2x2' ? <Grid3X3 className="h-4 w-4" /> : <Grid2X2 className="h-4 w-4" />}
+    <div className="mx-auto flex max-w-[1600px] flex-col gap-4">
+      <PageHeader
+        title="Live Zones"
+        description={
+          <>
+            What is happening in each zone right now? Boxes describe object states and anonymous behaviour, never who
+            someone is.{' '}
+            <span className="tabular">
+              {online.length} of {cameras.length} feeds online · {alerts.filter(a => a.status !== 'resolved').length} open
+              anomalies · {online.reduce((n, c) => n + c.crowdCount, 0)} people counted anonymously.
+            </span>
+          </>
+        }
+        actions={
+          <Button
+            variant="outline"
+            size="icon"
+            onClick={() => setLayout(layout === '2x2' ? '3x3' : '2x2')}
+            aria-label={layout === '2x2' ? 'Show three feeds per row' : 'Show two feeds per row'}
+          >
+            {layout === '2x2' ? <Grid3X3 className="h-4 w-4" aria-hidden /> : <Grid2X2 className="h-4 w-4" aria-hidden />}
           </Button>
-        </div>
-      </div>
+        }
+      />
 
       <Tabs value={zone} onValueChange={v => setZone(v as ZoneType | 'all')}>
-        <TabsList className="h-auto flex-wrap justify-start">
+        <TabsList className="h-auto flex-wrap justify-start" aria-label="Filter by zone">
           <TabsTrigger value="all">All zones</TabsTrigger>
           {zones.map(z => (
             <TabsTrigger key={z} value={z}>
@@ -58,30 +67,34 @@ export default function LiveZonesPage() {
           const open = openFor(camera.id);
           return (
             <Card key={camera.id} className="overflow-hidden">
-              <button className="group relative block w-full text-left" onClick={() => setViewing(camera)}>
+              <button
+                className="group relative block w-full text-left"
+                onClick={() => setViewing(camera)}
+                aria-label={`Open the anonymised viewer for ${camera.name}`}
+              >
                 <ZoneFeed camera={camera} />
-                <span className="absolute bottom-1.5 right-1.5 rounded bg-black/60 p-1 text-white opacity-0 transition-opacity group-hover:opacity-100">
-                  <Maximize2 className="h-3.5 w-3.5" />
+                <span className="absolute bottom-1.5 right-1.5 rounded bg-black/70 p-1 text-white opacity-0 transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100">
+                  <Maximize2 className="h-4 w-4" aria-hidden />
                 </span>
               </button>
-              <CardContent className="p-3">
+              <CardContent className="p-4">
                 <div className="flex items-start justify-between gap-2">
                   <div>
-                    <p className="font-medium text-sm">{camera.name}</p>
+                    <h2 className="text-sm font-semibold">{camera.name}</h2>
                     <p className="text-xs text-muted-foreground">{camera.location}</p>
                   </div>
-                  <SimulateMenu cameraId={camera.id} size="icon" variant="ghost" />
+                  <SimulateMenu cameraId={camera.id} size="icon" variant="ghost" label={`Simulate an incident on ${camera.name}`} />
                 </div>
-                <div className="mt-2 flex flex-wrap gap-1 min-h-[22px]">
+                <div className="mt-2 flex min-h-6 flex-wrap gap-2">
                   {open.length === 0 ? (
                     <span className="text-xs text-muted-foreground">
                       {camera.status === 'online' ? 'All clear' : 'Camera offline'}
                     </span>
                   ) : (
                     open.map(a => (
-                      <Badge key={a.id} variant="outline" className={`text-[10px] ${SEVERITY_META[a.severity].badge}`}>
+                      <SeverityBadge key={a.id} severity={a.severity}>
                         {DETECTION_CLASSES[a.detectionClass].label}
-                      </Badge>
+                      </SeverityBadge>
                     ))
                   )}
                 </div>
@@ -91,28 +104,7 @@ export default function LiveZonesPage() {
         })}
       </div>
 
-      <Card>
-        <CardContent className="grid grid-cols-2 md:grid-cols-4 gap-4 py-4 text-center">
-          <Stat label="Feeds" value={cameras.length} />
-          <Stat label="Online" value={cameras.filter(c => c.status === 'online').length} />
-          <Stat label="Open anomalies" value={alerts.filter(a => a.status !== 'resolved').length} />
-          <Stat
-            label="Anonymous head-count"
-            value={cameras.filter(c => c.status === 'online').reduce((n, c) => n + c.crowdCount, 0)}
-          />
-        </CardContent>
-      </Card>
-
       <CameraViewerDialog camera={viewing} onClose={() => setViewing(null)} />
-    </div>
-  );
-}
-
-function Stat({ label, value }: { label: string; value: number }) {
-  return (
-    <div>
-      <p className="text-xs text-muted-foreground">{label}</p>
-      <p className="text-xl font-bold tabular-nums">{value}</p>
     </div>
   );
 }

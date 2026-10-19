@@ -2,73 +2,93 @@
 @tailwind components;
 @tailwind utilities;
 
-:root {
-  --foreground-rgb: 0, 0, 0;
-  --background-start-rgb: 214, 219, 220;
-  --background-end-rgb: 255, 255, 255;
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --foreground-rgb: 255, 255, 255;
-    --background-start-rgb: 0, 0, 0;
-    --background-end-rgb: 0, 0, 0;
-  }
-}
-
+/*
+ * AnomalyGuard design tokens. Every colour in the UI comes from here; see docs/DESIGN.md for roles and contrast.
+ * Brand red is for brand surfaces only (primary button, active nav, logo mark, key links).
+ * Status colours (critical, warning, info, success) carry meaning and always ship with an icon and a text label.
+ * Critical is plum, not red, so it can never be mistaken for the brand.
+ */
 @layer base {
   :root {
-    --background: 0 0% 100%;
-    --foreground: 0 0% 3.9%;
-    --card: 0 0% 100%;
-    --card-foreground: 0 0% 3.9%;
-    --popover: 0 0% 100%;
-    --popover-foreground: 0 0% 3.9%;
-    --primary: 0 0% 9%;
-    --primary-foreground: 0 0% 98%;
-    --secondary: 0 0% 96.1%;
-    --secondary-foreground: 0 0% 9%;
-    --muted: 0 0% 96.1%;
-    --muted-foreground: 0 0% 45.1%;
-    --accent: 0 0% 96.1%;
-    --accent-foreground: 0 0% 9%;
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 0 0% 98%;
-    --border: 0 0% 89.8%;
-    --input: 0 0% 89.8%;
-    --ring: 0 0% 3.9%;
-    --chart-1: 12 76% 61%;
-    --chart-2: 173 58% 39%;
-    --chart-3: 197 37% 24%;
-    --chart-4: 43 74% 66%;
-    --chart-5: 27 87% 67%;
+    --background: 60 9.1% 97.8%; /* #FAFAF9 */
+    --foreground: 24 9.8% 10.0%; /* #1C1917 */
+    --card: 0 0.0% 100.0%; /* #FFFFFF */
+    --card-foreground: 24 9.8% 10.0%; /* #1C1917 */
+    --popover: 0 0.0% 100.0%; /* #FFFFFF */
+    --popover-foreground: 24 9.8% 10.0%; /* #1C1917 */
+    --muted: 60 4.8% 95.9%; /* #F5F5F4 */
+    --muted-foreground: 33 5.5% 32.4%; /* #57534E */
+    --secondary: 60 4.8% 95.9%; /* #F5F5F4 */
+    --secondary-foreground: 24 9.8% 10.0%; /* #1C1917 */
+    --accent: 60 4.8% 95.9%; /* #F5F5F4 */
+    --accent-foreground: 24 9.8% 10.0%; /* #1C1917 */
+    --border: 20 5.9% 90.0%; /* #E7E5E4 */
+    --input: 27 4.5% 52.0%; /* #8A847F */
+    --ring: 24 9.8% 10.0%; /* #1C1917 */
+    --primary: 2 63.4% 48.2%; /* #C9322D */
+    --primary-foreground: 0 0.0% 100.0%; /* #FFFFFF */
+    --brand-strong: 359 69.1% 34.3%; /* #941B1E */
+    --link: 359 69.1% 34.3%; /* #941B1E */
+    --gold: 32 94.3% 72.4%; /* #FBBC76 */
+    --gold-foreground: 24 9.8% 10.0%; /* #1C1917 */
+    --coral: 0 86.1% 69.0%; /* #F46C6C */
+    --destructive: 297 63.6% 28.0%; /* #701A75 */
+    --destructive-foreground: 0 0.0% 100.0%; /* #FFFFFF */
+    --critical: 297 63.6% 28.0%; /* #701A75 */
+    --critical-soft: 289 100.0% 97.8%; /* #FDF4FF */
+    --critical-fg: 297 63.6% 28.0%; /* #701A75 */
+    --warning: 32 94.6% 43.7%; /* #D97706 */
+    --warning-soft: 48 100.0% 96.1%; /* #FFFBEB */
+    --warning-fg: 23 82.5% 31.4%; /* #92400E */
+    --info: 221 83.2% 53.3%; /* #2563EB */
+    --info-soft: 214 100.0% 96.9%; /* #EFF6FF */
+    --info-fg: 226 70.7% 40.2%; /* #1E40AF */
+    --success: 175 77.4% 26.1%; /* #0F766E */
+    --success-soft: 166 76.5% 96.7%; /* #F0FDFA */
+    --success-fg: 176 69.4% 21.8%; /* #115E59 */
+    --chart-muted: 27 4.5% 52.0%; /* #8A847F */
+    --chart-strong: 30 6.2% 25.1%; /* #44403C */
     --radius: 0.5rem;
   }
   .dark {
-    --background: 0 0% 3.9%;
-    --foreground: 0 0% 98%;
-    --card: 0 0% 3.9%;
-    --card-foreground: 0 0% 98%;
-    --popover: 0 0% 3.9%;
-    --popover-foreground: 0 0% 98%;
-    --primary: 0 0% 98%;
-    --primary-foreground: 0 0% 9%;
-    --secondary: 0 0% 14.9%;
-    --secondary-foreground: 0 0% 98%;
-    --muted: 0 0% 14.9%;
-    --muted-foreground: 0 0% 63.9%;
-    --accent: 0 0% 14.9%;
-    --accent-foreground: 0 0% 98%;
-    --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 0 0% 98%;
-    --border: 0 0% 14.9%;
-    --input: 0 0% 14.9%;
-    --ring: 0 0% 83.1%;
-    --chart-1: 220 70% 50%;
-    --chart-2: 160 60% 45%;
-    --chart-3: 30 80% 55%;
-    --chart-4: 280 65% 60%;
-    --chart-5: 340 75% 55%;
+    --background: 20 14.3% 4.1%; /* #0C0A09 */
+    --foreground: 60 9.1% 97.8%; /* #FAFAF9 */
+    --card: 24 9.8% 10.0%; /* #1C1917 */
+    --card-foreground: 60 9.1% 97.8%; /* #FAFAF9 */
+    --popover: 24 9.8% 10.0%; /* #1C1917 */
+    --popover-foreground: 60 9.1% 97.8%; /* #FAFAF9 */
+    --muted: 12 6.5% 15.1%; /* #292524 */
+    --muted-foreground: 24 5.4% 63.9%; /* #A8A29E */
+    --secondary: 12 6.5% 15.1%; /* #292524 */
+    --secondary-foreground: 60 9.1% 97.8%; /* #FAFAF9 */
+    --accent: 12 6.5% 15.1%; /* #292524 */
+    --accent-foreground: 60 9.1% 97.8%; /* #FAFAF9 */
+    --border: 23 7.4% 21.2%; /* #3A3532 */
+    --input: 25 5.3% 44.7%; /* #78716C */
+    --ring: 60 9.1% 97.8%; /* #FAFAF9 */
+    --primary: 2 63.4% 48.2%; /* #C9322D */
+    --primary-foreground: 0 0.0% 100.0%; /* #FFFFFF */
+    --brand-strong: 359 69.1% 34.3%; /* #941B1E */
+    --link: 3 93.8% 81.0%; /* #FCA5A1 */
+    --gold: 32 94.3% 72.4%; /* #FBBC76 */
+    --gold-foreground: 24 9.8% 10.0%; /* #1C1917 */
+    --coral: 0 86.1% 69.0%; /* #F46C6C */
+    --destructive: 292 84.1% 60.6%; /* #D946EF */
+    --destructive-foreground: 24 9.8% 10.0%; /* #1C1917 */
+    --critical: 292 84.1% 60.6%; /* #D946EF */
+    --critical-soft: 295 72.6% 14.3%; /* #3B0A3F */
+    --critical-fg: 291 93.1% 82.9%; /* #F0ABFC */
+    --warning: 43 96.4% 56.3%; /* #FBBF24 */
+    --warning-soft: 36 78.9% 11.2%; /* #332106 */
+    --warning-fg: 46 96.7% 64.5%; /* #FCD34D */
+    --info: 201 94.4% 86.1%; /* #BAE6FD */
+    --info-soft: 218 67.1% 14.3%; /* #0C1E3D */
+    --info-fg: 201 94.4% 86.1%; /* #BAE6FD */
+    --success: 173 80.4% 40.0%; /* #14B8A6 */
+    --success-soft: 179 84.3% 10.0%; /* #042F2E */
+    --success-fg: 171 76.9% 64.3%; /* #5EEAD4 */
+    --chart-muted: 25 5.3% 44.7%; /* #78716C */
+    --chart-strong: 20 5.9% 90.0%; /* #E7E5E4 */
   }
 }
 
@@ -76,7 +96,37 @@
   * {
     @apply border-border;
   }
+  html {
+    -webkit-text-size-adjust: 100%;
+  }
   body {
-    @apply bg-background text-foreground;
+    @apply bg-background text-foreground antialiased;
+    font-feature-settings: 'cv11', 'ss01';
+  }
+  /* One visible focus style for anything focusable that does not draw its own ring. */
+  :focus-visible {
+    outline: 2px solid hsl(var(--ring));
+    outline-offset: 2px;
+  }
+  h1, h2, h3 {
+    text-wrap: balance;
+  }
+}
+
+@layer utilities {
+  /* Numbers that line up in tables and KPI tiles. */
+  .tabular {
+    font-variant-numeric: tabular-nums;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
   }
 }

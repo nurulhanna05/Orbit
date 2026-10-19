@@ -11,7 +11,8 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { useAnomaly } from '@/components/providers/anomaly-provider';
-import { DETECTION_CLASS_LIST } from '@/lib/anomaly/taxonomy';
+import { DETECTION_CLASS_LIST, SEVERITY_META } from '@/lib/anomaly/taxonomy';
+import { SeverityIcon } from './status';
 import type { ButtonProps } from '@/components/ui/button';
 
 export function SimulateMenu({
@@ -32,8 +33,8 @@ export function SimulateMenu({
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button size={size} variant={variant} className="gap-1.5">
-          <Zap className="h-4 w-4 text-amber-500" />
+        <Button size={size} variant={variant} className="gap-2" aria-label={size === 'icon' ? label : undefined}>
+          <Zap className="h-4 w-4" aria-hidden />
           {size !== 'icon' && label}
         </Button>
       </DropdownMenuTrigger>
@@ -46,9 +47,9 @@ export function SimulateMenu({
         <DropdownMenuSeparator />
         {classes.map(c => (
           <DropdownMenuItem key={c.id} onClick={() => simulateIncident(c.id, cameraId)}>
-            <span className="h-2.5 w-2.5 rounded-full mr-2" style={{ backgroundColor: c.color }} />
+            <SeverityIcon severity={c.defaultSeverity} className="mr-2" />
             {c.label}
-            <code className="ml-auto text-[10px] text-muted-foreground">{c.id}</code>
+            <span className="ml-auto text-xs text-muted-foreground">{SEVERITY_META[c.defaultSeverity].label}</span>
           </DropdownMenuItem>
         ))}
       </DropdownMenuContent>
