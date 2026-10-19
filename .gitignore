@@ -46,3 +46,10 @@ backup/
 backups/
 *.bak
 *-backup/
+
+# python backend
+backend/.venv/
+__pycache__/
+*.pt
+backend/samples/
+*.onnx

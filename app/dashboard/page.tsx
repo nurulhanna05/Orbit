@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { formatDistanceToNow } from 'date-fns';
-import { ArrowRight, Camera as CameraIcon, Gauge, ShieldCheck, ShieldOff, Siren, Ticket, TriangleAlert } from 'lucide-react';
+import { ArrowRight, Camera as CameraIcon, Gauge, ShieldCheck, Siren, Ticket, TriangleAlert } from 'lucide-react';
 import type { Camera } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -57,26 +57,14 @@ export default function OverviewPage() {
         <SimulateMenu variant="default" />
       </div>
 
-      <div
-        className={cn(
-          'flex flex-col md:flex-row md:items-center gap-3 rounded-lg border p-4',
-          settings.privacyShield
-            ? 'border-emerald-200 bg-emerald-50 dark:border-emerald-900 dark:bg-emerald-950/40'
-            : 'border-red-200 bg-red-50 dark:border-red-900 dark:bg-red-950/40'
-        )}
-      >
-        {settings.privacyShield ? (
-          <ShieldCheck className="h-8 w-8 shrink-0 text-emerald-600" />
-        ) : (
-          <ShieldOff className="h-8 w-8 shrink-0 text-red-600" />
-        )}
+      <div className="flex flex-col md:flex-row md:items-center gap-3 rounded-lg border border-emerald-200 bg-emerald-50 p-4 dark:border-emerald-900 dark:bg-emerald-950/40">
+        <ShieldCheck className="h-8 w-8 shrink-0 text-emerald-600" />
         <div className="flex-1">
-          <p className="font-semibold">
-            {settings.privacyShield ? 'PDPA Privacy Shield Active: faces anonymised' : 'Privacy Shield disabled: operator review in progress'}
-          </p>
+          <p className="font-semibold">Evidence snapshots are always anonymised.</p>
           <p className="text-sm text-muted-foreground">
-            Repurposed from open-source security tooling into a privacy-first asset telemetry platform. AnomalyGuard
-            classifies object states, hazards and anonymous behaviour. No facial recognition, no identity tracking.
+            Privacy-by-design, aligned with PDPA principles. AnomalyGuard classifies object states, hazards and anonymous
+            behaviour, with no facial recognition or identity tracking. Live view is transient and for authorised
+            operators only.
           </p>
         </div>
       </div>

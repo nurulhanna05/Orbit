@@ -132,7 +132,8 @@ export const DEFAULT_SETTINGS: AppSettings = {
   systemName: 'AnomalyGuard',
   township: TOWNSHIP.subtitle,
   timezone: 'Asia/Kuala_Lumpur',
-  privacyShield: true,
+  snapshotRetentionDays: 30,
+  resolvedSnapshotRetentionDays: 7,
   autoSimulate: false,
   simulateEverySec: 20,
   crowdWarningThreshold: 9,
@@ -158,7 +159,8 @@ export type AnomalyState = {
   settings: AppSettings;
 };
 
-export const STATE_VERSION = 1;
+// 2: Privacy Shield toggle replaced by always-anonymised evidence snapshots with retention settings.
+export const STATE_VERSION = 2;
 
 // Builds a week of plausible, fully-resolved history so analytics are populated on first load,
 // plus a couple of live alerts so the demo opens with something to act on.
@@ -281,7 +283,7 @@ export function buildSeedState(): AnomalyState {
         id: 'AUD-1',
         at: new Date(now - 7 * 86400000).toISOString(),
         actor: 'System',
-        text: 'Privacy Shield enabled by default: face regions anonymised at the edge before storage.',
+        text: 'Privacy-by-design defaults applied: evidence snapshots are anonymised at the edge and kept 30 days (7 after resolution).',
       },
     ],
     settings: DEFAULT_SETTINGS,

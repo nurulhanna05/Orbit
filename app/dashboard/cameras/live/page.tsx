@@ -11,7 +11,7 @@ import { useAnomaly } from '@/components/providers/anomaly-provider';
 import ZoneFeed from '@/components/anomaly/zone-feed';
 import { CameraViewerDialog } from '@/components/anomaly/camera-viewer';
 import { SimulateMenu } from '@/components/anomaly/simulate-menu';
-import { PrivacyShieldBadge } from '@/components/anomaly/privacy-shield';
+import { PrivacyStatusBadge } from '@/components/anomaly/privacy-shield';
 import { DETECTION_CLASSES, SEVERITY_META, ZONE_LABELS } from '@/lib/anomaly/taxonomy';
 
 export default function LiveZonesPage() {
@@ -34,7 +34,7 @@ export default function LiveZonesPage() {
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          <PrivacyShieldBadge compact />
+          <PrivacyStatusBadge compact />
           <SimulateMenu />
           <Button variant="outline" size="icon" onClick={() => setLayout(layout === '2x2' ? '3x3' : '2x2')} title="Toggle grid">
             {layout === '2x2' ? <Grid3X3 className="h-4 w-4" /> : <Grid2X2 className="h-4 w-4" />}

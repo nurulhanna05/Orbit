@@ -10,8 +10,19 @@ import { buildAlert } from './simulator';
 export const API_BASE = process.env.NEXT_PUBLIC_ANOMALYGUARD_API ?? '';
 export const isLiveBackend = () => API_BASE.length > 0;
 
-// Shape the FastAPI service is expected to return. Faces are blurred on the edge node before
-// anything leaves it; `track_id` is an ephemeral per-session integer, never a person identifier.
+// Evidence snapshot of the frame where a detection opened. The edge service blurs faces in memory before
+// encoding it, and sends no image at all if anonymisation fails, so this field is optional.
+export type EdgeSnapshot = {
+  jpeg_b64: string;
+  width: number;
+  height: number;
+  crop: [number, number, number, number]; // normalised region of the original frame
+  regions_blurred: number;
+  timings_ms: { people: number; faces: number; blur: number; encode: number; total: number };
+};
+
+// Shape the FastAPI service is expected to return. `track_id` is an ephemeral per-session integer,
+// never a person identifier.
 export type EdgeDetection = {
   camera_id: string;
   class_name: DetectionClass;
@@ -22,9 +33,10 @@ export type EdgeDetection = {
     label: string;
     kind: BoundingBox['kind'];
     confidence: number;
-    face_xy_r?: [number, number, number]; // normalised blur circle
+    face_xy_r?: [number, number, number]; // normalised head circle
   }[];
   face_blurred: boolean;
+  snapshot?: EdgeSnapshot;
   track_id?: number;
 };
 
@@ -46,6 +58,20 @@ export function detectionToAlert(d: EdgeDetection, camera: Camera): Alert {
   return alert;
 }
 
+// An evidence snapshot ready to store with a new alert: the anonymised JPEG plus its timing.
+export type SnapshotInput = { jpeg: Blob; blurMs?: number; crop?: [number, number, number, number] };
+
+// The detection's snapshot, or null when the edge service sent metadata only.
+export function snapshotInput(d: EdgeDetection): SnapshotInput | null {
+  if (!d.snapshot) return null;
+  try {
+    const bytes = Uint8Array.from(atob(d.snapshot.jpeg_b64), c => c.charCodeAt(0));
+    return { jpeg: new Blob([bytes], { type: 'image/jpeg' }), blurMs: d.snapshot.timings_ms.total, crop: d.snapshot.crop };
+  } catch {
+    return null;
+  }
+}
+
 export async function fetchDetectionsSince(since: string): Promise<EdgeDetection[]> {
   if (!isLiveBackend()) return [];
   const res = await fetch(`${API_BASE}/api/v1/detections?since=${encodeURIComponent(since)}`);
@@ -53,14 +79,24 @@ export async function fetchDetectionsSince(since: string): Promise<EdgeDetection
   return res.json();
 }
 
-// Sandbox upload. The FastAPI side should run YOLOv8 over the clip and return the same detections.
+// Sandbox upload. The FastAPI side runs YOLOv8 over the clip and returns the same detections, each new
+// one with an anonymised evidence snapshot when anonymisation succeeded.
 export async function analyseClip(file: File, classes: DetectionClass[], threshold: number): Promise<EdgeDetection[] | null> {
   if (!isLiveBackend()) return null;
   const body = new FormData();
   body.append('file', file);
   body.append('classes', classes.join(','));
   body.append('conf', String(threshold));
-  const res = await fetch(`${API_BASE}/api/v1/sandbox/analyse`, { method: 'POST', body });
-  if (!res.ok) throw new Error(`Sandbox analysis failed: ${res.status}`);
+  let res: Response;
+  try {
+    res = await fetch(`${API_BASE}/api/v1/sandbox/analyse`, { method: 'POST', body });
+  } catch {
+    throw new Error(`The detection service at ${API_BASE} did not respond. Is the backend running?`);
+  }
+  if (!res.ok) {
+    // FastAPI puts the reason in `detail`, e.g. "Could not decode the video" or "Clip larger than 200 MB".
+    const detail = await res.json().then(b => b?.detail, () => undefined);
+    throw new Error(typeof detail === 'string' ? detail : `The detection service returned an error (${res.status}).`);
+  }
   return res.json();
 }

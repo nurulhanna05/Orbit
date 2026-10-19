@@ -1,7 +1,7 @@
 "use client"
 
 import { useId, useMemo } from 'react';
-import { ShieldCheck, Users, WifiOff } from 'lucide-react';
+import { EyeOff, Users, WifiOff } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { Alert, BoundingBox, Camera, DetectionClass } from '@/lib/types';
 import { useAnomaly } from '@/components/providers/anomaly-provider';
@@ -314,9 +314,10 @@ function boxColor(b: BoundingBox, cls?: DetectionClass) {
   return '#eab308';
 }
 
-export function displayLabel(b: BoundingBox, privacy: boolean) {
-  // Labels are always anonymous; with the shield off we just stop claiming the face is blurred.
-  const label = privacy ? b.label : b.label.replace(' (Face Blurred)', '');
+export function displayLabel(b: BoundingBox, snapshot: boolean) {
+  // Labels are always anonymous. Only an evidence snapshot has blurred faces, so only it says so.
+  const base = b.label.replace(' (Face Blurred)', '');
+  const label = snapshot && b.kind === 'pedestrian' ? `${base} (Face Blurred)` : base;
   return `${label} · ${formatConfidence(b.confidence)}`;
 }
 
@@ -343,9 +344,10 @@ export default function ZoneFeed({
   showLabels?: boolean;
   large?: boolean;
 }) {
-  const { settings } = useAnomaly();
   const { active, incident, ambient } = useCameraFeed(camera);
-  const privacy = settings.privacyShield;
+  // Live view is transient and for authorised operators only, so it is shown as is; only stored
+  // evidence snapshots are anonymised.
+  const privacy = false;
   const offline = camera.status === 'offline';
   const sceneBoxes = [...ambient, ...incident.map(i => i.box)];
   const overlay: { box: BoundingBox; cls?: DetectionClass }[] = [
@@ -406,10 +408,10 @@ export default function ZoneFeed({
             <Users className="h-3 w-3" />
             {active.has('crowd_density') ? incident.filter(i => i.box.kind === 'pedestrian').length : camera.crowdCount}
           </span>
-          {privacy && (
-            <span className="flex items-center gap-1 rounded bg-emerald-600/90 px-1.5 py-0.5 text-[10px] text-white">
-              <ShieldCheck className="h-3 w-3" />
-              {large ? 'Faces anonymised' : 'PDPA'}
+          {large && (
+            <span className="flex items-center gap-1 rounded bg-black/60 px-1.5 py-0.5 text-[10px] text-white">
+              <EyeOff className="h-3 w-3" />
+              Transient · not recorded
             </span>
           )}
         </div>

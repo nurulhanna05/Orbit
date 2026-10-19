@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { formatDistanceToNow } from 'date-fns';
-import { Power, ShieldCheck, ShieldOff } from 'lucide-react';
+import { Power, ShieldCheck } from 'lucide-react';
 import type { Camera } from '@/lib/types';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -23,10 +23,9 @@ export function CameraViewerDialog({ camera, onClose }: { camera: Camera | null;
 }
 
 function CameraViewerBody({ cameraId }: { cameraId: string }) {
-  const { cameras, settings, toggleCamera, resolveAlert } = useAnomaly();
+  const { cameras, toggleCamera, resolveAlert } = useAnomaly();
   const camera = cameras.find(c => c.id === cameraId)!;
   const { open, ambient } = useCameraFeed(camera);
-  const privacy = settings.privacyShield;
 
   return (
     <>
@@ -43,17 +42,10 @@ function CameraViewerBody({ cameraId }: { cameraId: string }) {
       <div className="grid gap-4 lg:grid-cols-[1fr_300px]">
         <div className="space-y-2">
           <ZoneFeed camera={camera} large className="rounded-md" />
-          <div
-            className={
-              privacy
-                ? 'flex items-center gap-2 rounded-md bg-emerald-50 p-2 text-xs text-emerald-900 dark:bg-emerald-950/50 dark:text-emerald-200'
-                : 'flex items-center gap-2 rounded-md bg-red-50 p-2 text-xs text-red-900 dark:bg-red-950/50 dark:text-red-200'
-            }
-          >
-            {privacy ? <ShieldCheck className="h-4 w-4" /> : <ShieldOff className="h-4 w-4" />}
-            {privacy
-              ? 'Blur patches cover every face region. Stored frames are anonymised on the edge node. Plates are masked.'
-              : 'Privacy Shield is off: un-blurred live view for verification only. It is not recorded, and the change is in the PDPA audit trail.'}
+          <div className="flex items-center gap-2 rounded-md bg-emerald-50 p-2 text-xs text-emerald-900 dark:bg-emerald-950/50 dark:text-emerald-200">
+            <ShieldCheck className="h-4 w-4 shrink-0" />
+            Live view is transient and for authorised operators only; it is not recorded. When an alert opens, only an
+            evidence snapshot is kept, with faces blurred on the edge node.
           </div>
         </div>
 
@@ -107,7 +99,7 @@ function CameraViewerBody({ cameraId }: { cameraId: string }) {
             <div className="flex flex-wrap gap-1">
               {[...open.flatMap(a => a.boxes), ...ambient].slice(0, 10).map((b, i) => (
                 <Badge key={i} variant="secondary" className="font-normal text-[11px]">
-                  {displayLabel(b, privacy)}
+                  {displayLabel(b, false)}
                 </Badge>
               ))}
               {open.length === 0 && ambient.length === 0 && (

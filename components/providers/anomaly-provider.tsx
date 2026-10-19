@@ -5,19 +5,23 @@ import type { Alert, AppSettings, Camera, DetectionClass, Ticket, TicketStatus, 
 import { AnomalyState, SEED_CAMERAS, STATE_VERSION, buildSeedState, defaultContractorFor, nameOf } from '@/lib/anomaly/seed';
 import { buildAlert, randomIncident, uid } from '@/lib/anomaly/simulator';
 import { DETECTION_CLASSES, SEVERITY_META } from '@/lib/anomaly/taxonomy';
-import { detectionToAlert, fetchDetectionsSince, isLiveBackend } from '@/lib/anomaly/api';
+import { SnapshotInput, detectionToAlert, fetchDetectionsSince, isLiveBackend, snapshotInput } from '@/lib/anomaly/api';
+import { deleteSnapshot, putSnapshot, snapshotExpiry, storedSnapshotIds } from '@/lib/anomaly/snapshot-store';
 import { toast } from '@/hooks/use-toast';
 import { useAuth } from '@/components/providers/auth-provider';
 
 const STORAGE_KEY = 'anomalyguard-state';
 const MAX_ALERTS = 400;
+const PURGE_EVERY_MS = 60000;
+const PROCESSING_TIMEOUT_MS = 5 * 60000; // a snapshot still 'processing' this long after capture was lost (e.g. a reload)
 // Each zone's usual anonymous head-count; the live crowd count wanders around it instead of creeping upward.
 const CROWD_BASELINE = Object.fromEntries(SEED_CAMERAS.map(c => [c.id, c.crowdCount]));
 
 type AnomalyContextType = AnomalyState & {
   tick: number;
   simulateIncident: (cls?: DetectionClass, cameraId?: string) => Alert | null;
-  ingestAlert: (alert: Alert) => void;
+  /** `snapshot` may still be in flight: the alert shows at once and the snapshot is attached when it arrives. */
+  ingestAlert: (alert: Alert, snapshot?: Promise<SnapshotInput | null> | SnapshotInput | null) => void;
   markAlertRead: (id: string) => void;
   markAllAlertsRead: () => void;
   dispatchAlert: (id: string, contractorId: string) => void;
@@ -28,7 +32,8 @@ type AnomalyContextType = AnomalyState & {
   reassignTicket: (id: string, contractorId: string) => void;
   toggleCamera: (id: string) => void;
   updateCamera: (id: string, patch: Partial<Camera>) => void;
-  setPrivacyShield: (on: boolean, reason?: string) => void;
+  logSnapshotAccess: (alertId: string, action: 'viewed' | 'exported') => void;
+  purgeExpiredSnapshots: () => Promise<number>;
   updateSettings: (patch: Partial<AppSettings>) => void;
   resetDemo: () => void;
 };
@@ -43,11 +48,37 @@ function loadState(): AnomalyState {
     if (raw) {
       const parsed = JSON.parse(raw) as AnomalyState;
       if (parsed.version === STATE_VERSION) return parsed;
+      if (parsed.version === 1) return migrateV1(parsed);
     }
   } catch (error) {
     console.error('Error loading AnomalyGuard state:', error);
   }
   return buildSeedState();
+}
+
+// v1 had a Privacy Shield toggle; v2 always anonymises evidence snapshots and adds retention settings.
+// Everything else, including the audit trail, carries over.
+function migrateV1(v1: AnomalyState): AnomalyState {
+  const { privacyShield: _dropped, ...settings } = v1.settings as AppSettings & { privacyShield?: boolean };
+  const seed = buildSeedState();
+  return {
+    ...v1,
+    version: STATE_VERSION,
+    settings: {
+      ...settings,
+      snapshotRetentionDays: seed.settings.snapshotRetentionDays,
+      resolvedSnapshotRetentionDays: seed.settings.resolvedSnapshotRetentionDays,
+    },
+    audit: [
+      {
+        id: uid('AUD'),
+        at: now(),
+        actor: 'System',
+        text: 'Privacy Shield toggle retired: evidence snapshots are always anonymised; live view is transient and for authorised operators only.',
+      },
+      ...v1.audit,
+    ],
+  };
 }
 
 // Applies the predictive-maintenance wear model for a freshly flagged alert.
@@ -153,7 +184,37 @@ export function AnomalyProvider({ children }: { children: React.ReactNode }) {
     setState(s => (s ? fn(s) : s));
   }, []);
 
-  const ingestAlert = useCallback((incoming: Alert) => {
+  const setSnapshot = useCallback((alertId: string, patch: Partial<NonNullable<Alert['snapshot']>>) => {
+    setState(s =>
+      s
+        ? {
+            ...s,
+            alerts: s.alerts.map(a => (a.id === alertId && a.snapshot ? { ...a, snapshot: { ...a.snapshot, ...patch } } : a)),
+          }
+        : s
+    );
+  }, []);
+
+  // Stores the anonymised JPEG once it arrives. Fails closed: if it never comes, or cannot be stored,
+  // the alert keeps its metadata and says the snapshot is unavailable.
+  const attachSnapshot = useCallback(
+    async (alertId: string, source: Promise<SnapshotInput | null> | SnapshotInput | null) => {
+      try {
+        const snap = await source;
+        if (snap) {
+          await putSnapshot(alertId, snap.jpeg);
+          setSnapshot(alertId, { status: 'ready', blurMs: snap.blurMs, crop: snap.crop });
+          return;
+        }
+      } catch (error) {
+        console.error('Evidence snapshot not stored:', error);
+      }
+      setSnapshot(alertId, { status: 'unavailable' });
+    },
+    [setSnapshot]
+  );
+
+  const ingestAlert = useCallback((incoming: Alert, snapshot?: Promise<SnapshotInput | null> | SnapshotInput | null) => {
     const current = stateRef.current;
     if (!current) return;
     const camera = current.cameras.find(c => c.id === incoming.cameraId);
@@ -165,6 +226,8 @@ export function AnomalyProvider({ children }: { children: React.ReactNode }) {
     if (incoming.source === 'edge' && incoming.confidence < threshold) return;
 
     const duplicate = !!findOpenDuplicate(current.alerts, incoming);
+    // Only a newly opened alert keeps an evidence snapshot; a re-detection never stores another frame.
+    const withSnapshot = !duplicate && snapshot !== undefined;
     setState(s => {
       if (!s) return s;
       const open = findOpenDuplicate(s.alerts, incoming);
@@ -176,9 +239,11 @@ export function AnomalyProvider({ children }: { children: React.ReactNode }) {
         );
         return { ...s, alerts: s.alerts.map(a => (a.id === open.id ? merged : a)) };
       }
-      const { state: worn, alert } = applyWear(s, incoming);
+      const fresh: Alert = withSnapshot ? { ...incoming, snapshot: { status: 'processing', capturedAt: incoming.createdAt } } : incoming;
+      const { state: worn, alert } = applyWear(s, fresh);
       return { ...worn, alerts: [alert, ...worn.alerts].slice(0, MAX_ALERTS) };
     });
+    if (withSnapshot) attachSnapshot(incoming.id, snapshot);
 
     if (duplicate) {
       toast({
@@ -192,7 +257,78 @@ export function AnomalyProvider({ children }: { children: React.ReactNode }) {
         description: `${incoming.cameraName} · conf ${incoming.confidence.toFixed(2)}`,
       });
     }
+  }, [attachSnapshot]);
+
+  // Retention: deletes stored snapshots past their expiry, and any whose alert no longer exists.
+  const purgeExpiredSnapshots = useCallback(async () => {
+    const current = stateRef.current;
+    if (!current) return 0;
+    let stored: string[];
+    try {
+      stored = await storedSnapshotIds();
+    } catch (error) {
+      console.error('Snapshot store unavailable:', error);
+      return 0;
+    }
+    const byId = new Map(current.alerts.map(a => [a.id, a]));
+    const t = Date.now();
+    const expired = stored.filter(id => {
+      const alert = byId.get(id);
+      const expiry = alert && snapshotExpiry(alert, current.settings);
+      return !alert || (!!expiry && expiry.getTime() <= t);
+    });
+    const deleted = new Set<string>();
+    for (const id of expired) {
+      try {
+        await deleteSnapshot(id);
+        deleted.add(id);
+      } catch (error) {
+        console.error(`Could not delete snapshot ${id}:`, error);
+      }
+    }
+    const storedSet = new Set(stored);
+    const lost = new Set(
+      current.alerts
+        .filter(
+          a =>
+            a.snapshot?.status === 'processing' &&
+            !storedSet.has(a.id) &&
+            t - new Date(a.snapshot.capturedAt).getTime() > PROCESSING_TIMEOUT_MS
+        )
+        .map(a => a.id)
+    );
+    if (deleted.size === 0 && lost.size === 0) return 0;
+    setState(s => {
+      if (!s) return s;
+      const alerts = s.alerts.map(a => {
+        if (!a.snapshot) return a;
+        if (deleted.has(a.id)) return { ...a, snapshot: { ...a.snapshot, status: 'deleted' as const, deletedAt: now() } };
+        if (lost.has(a.id) && a.snapshot.status === 'processing') return { ...a, snapshot: { ...a.snapshot, status: 'unavailable' as const } };
+        return a;
+      });
+      const ids = Array.from(deleted);
+      const entry = ids.length
+        ? [
+            {
+              id: uid('AUD'),
+              at: now(),
+              actor: 'System',
+              text: `Retention policy: deleted ${ids.length} evidence snapshot${ids.length > 1 ? 's' : ''} (${ids.slice(0, 5).join(', ')}${ids.length > 5 ? ', …' : ''}).`,
+            },
+          ]
+        : [];
+      return { ...s, alerts, audit: [...entry, ...s.audit] };
+    });
+    return deleted.size;
   }, []);
+
+  const retention = state ? `${state.settings.snapshotRetentionDays}/${state.settings.resolvedSnapshotRetentionDays}` : '';
+  useEffect(() => {
+    if (!retention) return;
+    purgeExpiredSnapshots();
+    const id = setInterval(purgeExpiredSnapshots, PURGE_EVERY_MS);
+    return () => clearInterval(id);
+  }, [retention, purgeExpiredSnapshots]);
 
   const simulateIncident = useCallback(
     (cls?: DetectionClass, cameraId?: string) => {
@@ -280,7 +416,8 @@ export function AnomalyProvider({ children }: { children: React.ReactNode }) {
         since = now();
         for (const d of detections) {
           const camera = stateRef.current?.cameras.find(c => c.id === d.camera_id);
-          if (camera) ingestAlert(detectionToAlert(d, camera));
+          // null (metadata only) still marks the alert as having no snapshot, rather than a simulated scene.
+          if (camera) ingestAlert(detectionToAlert(d, camera), snapshotInput(d));
         }
       } catch (error) {
         console.error('Edge API polling failed:', error);
@@ -467,17 +604,28 @@ export function AnomalyProvider({ children }: { children: React.ReactNode }) {
         })),
       updateCamera: (id: string, patch: Partial<Camera>) =>
         update(s => ({ ...s, cameras: s.cameras.map(c => (c.id === id ? { ...c, ...patch } : c)) })),
-      setPrivacyShield: (on: boolean, reason?: string) =>
+      logSnapshotAccess: (alertId: string, action: 'viewed' | 'exported') =>
+        update(s => ({ ...s, audit: [auditEntry(`Evidence snapshot ${action}: ${alertId}`), ...s.audit] })),
+      purgeExpiredSnapshots,
+      updateSettings: (patch: Partial<AppSettings>) =>
         update(s => {
-          if (s.settings.privacyShield === on) return s;
-          const text = on
-            ? 'Privacy Shield re-enabled: live feeds anonymised again.'
-            : `Privacy Shield disabled: un-blurred live view for verification${reason ? ` (reason: ${reason})` : ''}. Stored frames stay anonymised.`;
-          return { ...s, settings: { ...s.settings, privacyShield: on }, audit: [auditEntry(text), ...s.audit] };
+          const settings = { ...s.settings, ...patch };
+          const changed =
+            settings.snapshotRetentionDays !== s.settings.snapshotRetentionDays ||
+            settings.resolvedSnapshotRetentionDays !== s.settings.resolvedSnapshotRetentionDays;
+          const audit = changed
+            ? [
+                auditEntry(
+                  `Snapshot retention set to ${settings.snapshotRetentionDays} days, or ${settings.resolvedSnapshotRetentionDays} days after resolution.`
+                ),
+                ...s.audit,
+              ]
+            : s.audit;
+          return { ...s, settings, audit };
         }),
-      updateSettings: (patch: Partial<AppSettings>) => update(s => ({ ...s, settings: { ...s.settings, ...patch } })),
       // Restores the demo data but never the audit trail: the reset itself is logged on top of it.
-      resetDemo: () =>
+      // Stored snapshots of the replaced alerts are then deleted as orphans.
+      resetDemo: () => {
         setState(s => {
           const seed = buildSeedState();
           const audit = s ? s.audit : seed.audit;
@@ -485,9 +633,11 @@ export function AnomalyProvider({ children }: { children: React.ReactNode }) {
             ...seed,
             audit: [auditEntry('Demo data reset: alerts, tickets, assets and settings restored to seed.'), ...audit],
           };
-        }),
+        });
+        setTimeout(purgeExpiredSnapshots, 0);
+      },
     };
-  }, [update]);
+  }, [update, purgeExpiredSnapshots]);
 
   const value = useMemo<AnomalyContextType | undefined>(
     () => (state ? { ...state, tick, simulateIncident, ingestAlert, ...actions } : undefined),

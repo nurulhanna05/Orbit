@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { formatDistanceStrict, formatDistanceToNow } from 'date-fns';
-import { CheckCircle2, ChevronDown, Image as ImageIcon, RotateCcw, Search, Send, Ticket } from 'lucide-react';
+import { CheckCircle2, ChevronDown, Image as ImageIcon, Loader2, RotateCcw, Search, Send, Ticket } from 'lucide-react';
 import type { Alert, DetectionClass, Severity } from '@/lib/types';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -34,7 +34,7 @@ export default function AlertsPage() {
   const [cls, setCls] = useState<DetectionClass | 'all'>('all');
   const [query, setQuery] = useState('');
   const [focus, setFocus] = useState<string | null>(null);
-  const [snapshot, setSnapshot] = useState<Alert | null>(null);
+  const [snapshotId, setSnapshotId] = useState<string | null>(null);
 
   useEffect(() => {
     // Read ?focus= without useSearchParams so the page stays statically exportable.
@@ -129,15 +129,15 @@ export default function AlertsPage() {
             </Card>
           )}
           {open.map(a => (
-            <AlertRow key={a.id} alert={a} highlighted={focused?.id === a.id} onSnapshot={() => setSnapshot(a)} />
+            <AlertRow key={a.id} alert={a} highlighted={focused?.id === a.id} onSnapshot={() => setSnapshotId(a.id)} />
           ))}
         </TabsContent>
         <TabsContent value="history" className="mt-4">
-          <HistoryTable alerts={resolved} onSnapshot={setSnapshot} />
+          <HistoryTable alerts={resolved} onSnapshot={a => setSnapshotId(a.id)} />
         </TabsContent>
       </Tabs>
 
-      <SnapshotDialog alert={snapshot} onClose={() => setSnapshot(null)} />
+      <SnapshotDialog alert={alerts.find(a => a.id === snapshotId) ?? null} onClose={() => setSnapshotId(null)} />
     </div>
   );
 }
@@ -184,8 +184,17 @@ function AlertRow({ alert, highlighted, onSnapshot }: { alert: Alert; highlighte
           </div>
           <div className="flex flex-wrap gap-2 shrink-0">
             <Button size="sm" variant="outline" onClick={onSnapshot}>
-              <ImageIcon className="h-4 w-4 mr-1.5" />
-              Frame
+              {alert.snapshot?.status === 'processing' ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-1.5 animate-spin" />
+                  Snapshot…
+                </>
+              ) : (
+                <>
+                  <ImageIcon className="h-4 w-4 mr-1.5" />
+                  {alert.snapshot ? 'Snapshot' : 'Frame'}
+                </>
+              )}
             </Button>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
@@ -322,10 +331,11 @@ function SnapshotDialog({ alert, onClose }: { alert: Alert | null; onClose: () =
               </DialogTitle>
               <DialogDescription>{alert.message}</DialogDescription>
             </DialogHeader>
-            <AlertSnapshot alert={alert} camera={camera} />
+            <AlertSnapshot alert={alert} camera={camera} audited />
             <p className="text-xs text-muted-foreground">
-              Stored frame: faces were blurred on the edge node before storage, so it stays anonymised even when the
-              live Privacy Shield is off.
+              {alert.snapshot
+                ? 'Evidence snapshots are always anonymised: faces were blurred on the edge node before the image left it. Viewing and exporting are logged in the audit trail with your name.'
+                : 'Simulated alert: no camera frame exists, so this is a reconstructed scene with heads anonymised.'}
             </p>
           </>
         )}

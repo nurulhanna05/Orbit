@@ -16,15 +16,16 @@ AnomalyGuard gives township operators situational awareness and predictive maint
 | Capability | Where |
 |---|---|
 | Multi-feed live view of township zones with anonymous bounding boxes | `Live Zones` |
-| Camera viewer modal with face blur-patch simulation | click any feed |
-| **PDPA Privacy Shield**: global badge/toggle, audited when disabled | header, `Settings → Privacy & PDPA` |
+| Camera viewer modal (transient live view for authorised operators) | click any feed |
+| **Anonymised evidence snapshots**: one face-blurred frame per new alert, with retention and an audit trail of views and exports | `Alerts → Snapshot`, header status |
+| **Privacy & Compliance** page: what is stored, retention, who can view, signage, roadmap | `Settings → Privacy & Compliance`, `Settings → Retention` |
 | Alerts with Critical / Warning / Info severity, dispatch, resolved history with re-open | `Alerts` |
 | Maintenance tickets linked to detections, routed to contractors, reassignable, live crew status | `Maintenance Tickets` |
 | Predictive maintenance: asset health ticker and wear log showing lifespan impact | `Asset Health` |
 | Analytics by class and camera, average confidence, CSV export for municipal audit | `Analytics & Reports` |
 | Camera online/offline toggles, warning/critical filters, confidence thresholds and inference intervals | `Cameras` |
 | Edge node, IoT sensor and service uptime | `Edge & IoT Health` |
-| Upload pre-recorded footage and test the model | `Model Sandbox` |
+| Upload pre-recorded footage and test a real YOLOv8 model (with the optional backend) | `Model Sandbox` |
 | Simulated incidents so the demo runs end to end with no backend | `Simulate incident` (header) |
 
 ### Detection classes
@@ -38,7 +39,9 @@ AnomalyGuard gives township operators situational awareness and predictive maint
 | `lamp_off` | Warning | Street lamp −8%, −6 months |
 | `crowd_density` (anonymous head-count) | Info / Warning | – |
 
-Labels are always anonymous, for example `Pedestrian (Face Blurred) · 0.94` or `Vehicle on Ramp (Plate Masked) · 0.88`.
+With the backend connected, `person_fallen` and `crowd_density` come from a real YOLOv8 model in the Model Sandbox. The other four classes are always simulated. The live camera grid is simulated in both modes.
+
+Labels are always anonymous, for example `Pedestrian · 0.94` or `Vehicle on Ramp (Plate Masked) · 0.88`. Snapshot labels read `Pedestrian (Face Blurred)`.
 
 ### Contractors
 
@@ -46,12 +49,17 @@ CleanCo (bins), PipeFix (plumbing), FixIt Works (civil and accessibility), Elect
 
 ## Privacy by design
 
+AnomalyGuard is built privacy-by-design and aligned with PDPA principles. It is not certified as compliant with anything, and the *Privacy & Compliance* page says so: it describes design choices, not legal advice.
+
 - No facial recognition, enrolment photos, face templates, attendance or person re-identification. These modules were **removed** from the original codebase.
-- Faces are blurred and plates masked **on the edge node** before any frame is stored. Stored alert snapshots are always anonymised and cannot be un-blurred.
-- The Privacy Shield controls the *live* view only. Turning it off (for example, to verify a fall) requires confirmation and a reason, is never recorded, and is written to the audit trail with the operator's name.
+- **Live view is transient and for authorised operators only.** It is shown as is and is not recorded.
+- **Evidence snapshots are always anonymised.** When a *new* alert opens (not on repeat detections), the edge node takes that single frame, blurs faces in memory and returns it as a JPEG in an optional `snapshot` field. Asset alerts (lamp, pipe, bin) are cropped to the asset area. Unblurred frames are never written to disk. Anonymisation **fails closed**: on any error, or if the face detector is missing, only metadata is returned.
+- Faces are found by OpenCV YuNet (used only to locate regions to blur; nothing is recognised, stored or returned), unioned with the top 25% of every YOLOv8 person box. A person neither model detects is not blurred, so this is a strong best effort, not a guarantee that no face is ever present.
+- The dashboard shows an alert immediately and attaches its snapshot when it arrives (*processing* until then). Snapshots are stored in the browser's IndexedDB, never in `localStorage` state.
+- **Retention:** snapshots are deleted automatically after 30 days, or 7 days after the alert is resolved, whichever is sooner (configurable under `Settings → Retention`). Deletions are logged.
+- **Audit trail:** snapshot views and exports, retention changes, deletions and demo resets are logged with the operator's name. *Reset demo data* asks for confirmation and keeps the trail.
+- **Model Sandbox:** the uploaded clip plays as is, with boxes and labels overlaid. In demo mode it never leaves the browser. In backend mode the local edge service analyses it from a temp file it deletes straight afterwards, and returns only anonymised snapshots, shown at each detection marker.
 - Crowd density is a head-count only; individuals are never tracked across frames or cameras.
-- *Reset demo data* asks for confirmation and keeps the audit trail; the reset itself is logged.
-- The Model Sandbox has no model attached in demo mode: detections are simulated, uploaded footage is blurred as a whole frame and never leaves the browser.
 - CSV exports contain detection metadata only.
 - In this demo the audit trail lives in the browser (`localStorage`). A production deployment would write it to an append-only server log.
 
@@ -65,11 +73,17 @@ npm run dev
 
 `npm run build` produces a static export (`output: 'export'`).
 
+The dashboard runs fully on its own. To try the real model in the Model Sandbox, start the optional backend (setup in [backend/README.md](backend/README.md)) and add this line to `.env.local`, then restart `npm run dev`:
+
+```
+NEXT_PUBLIC_ANOMALYGUARD_API=http://localhost:8000
+```
+
 ### Demo script (about 3 minutes)
 
-1. **Overview**: point at the Privacy Shield banner and the asset health ticker.
-2. **Simulate incident → Person Fallen**: a critical toast fires and the feed shows a fallen posture with the face blurred.
-3. Click the feed: the viewer shows blur patches on every face. Toggle the shield in the header to show the confirm dialog (with a logged reason) and the audit entry. Open an alert's frame: it stays blurred, because stored frames were anonymised at the edge.
+1. **Overview**: point at the privacy status ("Evidence snapshots are always anonymised.") and the asset health ticker.
+2. **Simulate incident → Person Fallen**: a critical toast fires and the feed shows a fallen posture.
+3. Click the feed: the live view is transient and not recorded. Open the alert's frame: the stored evidence is anonymised. With the backend running, push a Sandbox detection to show the *processing* state, the face-blurred snapshot, and the view and export entries in `Settings → Privacy & Compliance`.
 4. **Simulate → Pipe Leak**, then open **Alerts**: dispatch PipeFix and choose *Raise ticket*.
 5. **Maintenance Tickets**: *Start work*, watch the crew go *En route → On site*, try reassigning, then *Mark resolved*. The linked alert closes and the asset gets a partial repair.
 6. **Asset Health**: show the lifespan hit and repair in the wear log.
@@ -96,7 +110,7 @@ Production needs real authentication on the FastAPI service (session cookie or O
 
 ```
 app/dashboard/            Next.js App Router pages (all client-rendered, statically exported)
-components/anomaly/       Zone feed renderer, camera viewer, privacy shield, simulate menu, ticker
+components/anomaly/       Zone feed renderer, camera viewer, privacy status, alert snapshot, simulate menu, ticker
 components/providers/
   anomaly-provider.tsx    Single client store: cameras, alerts, tickets, assets, wear log, settings
 lib/anomaly/
@@ -105,16 +119,23 @@ lib/anomaly/
   scenes.ts               Per-zone layout shared by the renderer and simulator
   seed.ts                 Cameras, contractors, assets and a week of seeded history
   api.ts                  FastAPI + YOLOv8 integration seam
+  snapshot-store.ts       IndexedDB store for anonymised snapshots, retention expiry
   infrastructure.ts       Edge node / IoT sensor telemetry mocks
   csv.ts                  Audit exports
+backend/                  Optional FastAPI + YOLOv8 edge service (see backend/README.md)
+  main.py                 Sandbox analysis with anonymised evidence snapshots, detections endpoint
+  test_snapshots.py       Checks snapshots against real clips for visible faces, fail-closed and asset crops
+  requirements.txt        Python dependencies (venv, weights and samples are git-ignored)
 ```
 
 ### Connecting the FastAPI + YOLOv8 backend
 
-Set `NEXT_PUBLIC_ANOMALYGUARD_API=http://localhost:8000` and the dashboard will:
+A working implementation lives in [`backend/`](backend/README.md). Set `NEXT_PUBLIC_ANOMALYGUARD_API=http://localhost:8000` and the dashboard will:
 
-- poll `GET /api/v1/detections?since=<iso>` every 5s and ingest each result as an alert (gated by the camera and class confidence thresholds)
-- send sandbox clips to `POST /api/v1/sandbox/analyse` (multipart: `file`, `classes`, `conf`)
+- poll `GET /api/v1/detections?since=<iso>` every 5s and ingest each result as an alert, gated by the camera and class confidence thresholds (the included backend returns `[]` here)
+- send sandbox clips to `POST /api/v1/sandbox/analyse` (multipart: `file`, `classes`, `conf`); each newly opened detection carries an anonymised snapshot
+
+The backend runs on CPU. Anonymising one snapshot took about 0.2–0.7 s in testing (mean 0.5 s across four clips), on top of about one sampled frame of analysis per second of video.
 
 Expected detection payload (see `EdgeDetection` in `lib/anomaly/api.ts`):
 
@@ -127,15 +148,24 @@ Expected detection payload (see `EdgeDetection` in `lib/anomaly/api.ts`):
   "face_blurred": true,
   "boxes": [
     { "xyxy": [0.08, 0.72, 0.30, 0.88], "label": "Water Pooling / Leak", "kind": "hazard", "confidence": 0.91 }
-  ]
+  ],
+  "snapshot": {
+    "jpeg_b64": "/9j/4AAQ…",
+    "width": 768, "height": 432,
+    "crop": [0.0, 0.5, 0.45, 1.0],
+    "regions_blurred": 3,
+    "timings_ms": { "people": 60, "faces": 410, "blur": 0.5, "encode": 3, "total": 474 }
+  }
 }
 ```
 
-`xyxy` and `face_xy_r` are normalised 0..1. `track_id`, if sent, must be an ephemeral per-session integer, never a person identifier.
+`xyxy`, `face_xy_r` and `crop` are normalised 0..1. `snapshot` is optional: it is present only on a newly opened detection whose frame was anonymised successfully. `track_id`, if sent, must be an ephemeral per-session integer, never a person identifier.
 
 ## Tech stack
 
 Next.js 13 (App Router), TypeScript, Tailwind CSS, shadcn/ui (Radix), Recharts, date-fns, Framer Motion.
+
+Optional backend: Python, FastAPI, Ultralytics YOLOv8 (`yolov8n`), OpenCV (YuNet face detector, used only to find regions to blur).
 
 ## Credits
 

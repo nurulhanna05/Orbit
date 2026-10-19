@@ -30,8 +30,8 @@ export function ResetDemoButton({ variant = 'outline', size, className }: Pick<B
           <AlertDialogHeader>
             <AlertDialogTitle>Reset demo data?</AlertDialogTitle>
             <AlertDialogDescription>
-              Alerts, tickets, asset health and settings go back to the seeded week. The PDPA audit trail is kept, and
-              the reset is added to it.
+              Alerts, tickets, asset health and settings go back to the seeded week. The privacy audit trail is kept,
+              and the reset is added to it. Stored snapshots of the replaced alerts are deleted.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

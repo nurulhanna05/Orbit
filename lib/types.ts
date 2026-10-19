@@ -43,7 +43,7 @@ export type BoundingBox = {
   kind: 'pedestrian' | 'vehicle' | 'hazard' | 'object';
   label: string; // anonymous label, e.g. "Pedestrian (Face Blurred)"
   confidence: number;
-  faceRegion?: { x: number; y: number; r: number }; // area that is blurred when the Privacy Shield is on
+  faceRegion?: { x: number; y: number; r: number }; // head area, blurred in evidence snapshots
 };
 
 export type AlertStatus = 'active' | 'dispatched' | 'resolved';
@@ -51,6 +51,16 @@ export type AlertStatus = 'active' | 'dispatched' | 'resolved';
 export type AlertEvent = {
   at: string;
   action: string;
+};
+
+// An anonymised evidence snapshot of the frame where an alert opened. Only this metadata lives in app state;
+// the JPEG itself is kept in IndexedDB (lib/anomaly/snapshot-store.ts) and deleted under the retention policy.
+export type EvidenceSnapshot = {
+  status: 'processing' | 'ready' | 'unavailable' | 'deleted';
+  capturedAt: string;
+  blurMs?: number; // time the edge service spent anonymising the frame
+  crop?: [number, number, number, number]; // normalised region of the original frame the image shows
+  deletedAt?: string;
 };
 
 export type Alert = {
@@ -72,6 +82,7 @@ export type Alert = {
   boxes: BoundingBox[];
   source: 'simulated' | 'sandbox' | 'edge';
   history: AlertEvent[];
+  snapshot?: EvidenceSnapshot; // absent on simulated alerts, which have no camera frame
 };
 
 export type TicketStatus = 'open' | 'in_progress' | 'resolved';
@@ -137,7 +148,8 @@ export type AppSettings = {
   systemName: string;
   township: string;
   timezone: string;
-  privacyShield: boolean;
+  snapshotRetentionDays: number; // evidence snapshots are deleted this long after capture...
+  resolvedSnapshotRetentionDays: number; // ...or this long after their alert is resolved, whichever is sooner
   autoSimulate: boolean;
   simulateEverySec: number;
   crowdWarningThreshold: number;

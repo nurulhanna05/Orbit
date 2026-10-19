@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useState } from 'react';
-import { Building2, Clock, FlaskConical, ScanEye, ShieldCheck } from 'lucide-react';
+import { Building2, CircleDashed, Clock, FlaskConical, Scale, ScanEye, ShieldCheck } from 'lucide-react';
 import type { Severity } from '@/lib/types';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -13,38 +13,30 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
-import RetentionSettings from '@/components/settings/retention-settings';
 import { useAnomaly } from '@/components/providers/anomaly-provider';
-import { AuditEntryText, PrivacyShieldSwitch } from '@/components/anomaly/privacy-shield';
+import { AuditEntryText, PRIVACY_STATUS } from '@/components/anomaly/privacy-shield';
 import { ResetDemoButton } from '@/components/anomaly/reset-demo-button';
 import { DETECTION_CLASS_LIST, SEVERITY_META } from '@/lib/anomaly/taxonomy';
 import { API_BASE, isLiveBackend } from '@/lib/anomaly/api';
+import { storedSnapshotIds } from '@/lib/anomaly/snapshot-store';
 
 const TABS = ['general', 'detection', 'privacy', 'simulation', 'retention'] as const;
+const RETENTION_DAYS = [7, 14, 30, 60, 90];
+const RESOLVED_RETENTION_DAYS = [1, 3, 7, 14, 30];
 
 export default function SettingsPage() {
   const [activeTab, setActiveTab] = useState<string>('general');
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const { toast } = useToast();
 
   useEffect(() => {
     const tab = new URLSearchParams(window.location.search).get('tab');
     if (tab && (TABS as readonly string[]).includes(tab)) setActiveTab(tab);
   }, []);
 
-  const onSubmit = (_data: unknown, formName: string) => {
-    setIsSubmitting(true);
-    setTimeout(() => {
-      setIsSubmitting(false);
-      toast({ title: 'Settings saved', description: `Your ${formName} settings have been updated.` });
-    }, 600);
-  };
-
   return (
     <div className="container mx-auto space-y-6 pb-8">
       <div>
         <h1 className="text-3xl font-bold tracking-tight">Settings</h1>
-        <p className="text-muted-foreground">Township profile, detection policy, privacy controls and demo simulation.</p>
+        <p className="text-muted-foreground">Township profile, detection policy, privacy and retention, and demo simulation.</p>
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
@@ -60,7 +52,7 @@ export default function SettingsPage() {
             </TabsTrigger>
             <TabsTrigger value="privacy" className="flex gap-2 items-center">
               <ShieldCheck className="h-4 w-4" />
-              <span className="hidden md:block">Privacy &amp; PDPA</span>
+              <span className="hidden md:block">Privacy &amp; Compliance</span>
             </TabsTrigger>
             <TabsTrigger value="simulation" className="flex gap-2 items-center">
               <FlaskConical className="h-4 w-4" />
@@ -86,7 +78,7 @@ export default function SettingsPage() {
           <SimulationSettings />
         </TabsContent>
         <TabsContent value="retention">
-          <RetentionSettings onSubmit={onSubmit} isSubmitting={isSubmitting} />
+          <RetentionSettings onOpenPrivacy={() => setActiveTab('privacy')} />
         </TabsContent>
       </Tabs>
     </div>
@@ -215,46 +207,108 @@ function DetectionSettings() {
   );
 }
 
+function Checklist({ items }: { items: string[] }) {
+  return (
+    <ul className="space-y-1.5 text-sm">
+      {items.map(t => (
+        <li key={t} className="flex gap-2">
+          <ShieldCheck className="h-4 w-4 shrink-0 text-emerald-600 mt-0.5" />
+          {t}
+        </li>
+      ))}
+    </ul>
+  );
+}
+
 function PrivacySettings() {
-  const { audit } = useAnomaly();
+  const { audit, settings } = useAnomaly();
   return (
     <div className="grid gap-6 lg:grid-cols-2">
       <Card>
         <CardHeader>
-          <CardTitle>PDPA Privacy Shield</CardTitle>
-          <CardDescription>Privacy by design under Malaysia&apos;s Personal Data Protection Act 2010.</CardDescription>
+          <CardTitle>Privacy &amp; Compliance</CardTitle>
+          <CardDescription>Privacy-by-design, aligned with the principles of Malaysia&apos;s PDPA 2010.</CardDescription>
         </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="flex items-center justify-between rounded-md border p-3">
-            <div>
-              <p className="font-medium text-sm">Anonymise faces on live feeds</p>
-              <p className="text-xs text-muted-foreground">
-                Turning this off needs confirmation and is recorded in the audit trail. Stored frames stay anonymised.
-              </p>
-            </div>
-            <PrivacyShieldSwitch />
+        <CardContent className="space-y-5">
+          <div className="flex items-center gap-2 rounded-md border border-emerald-200 bg-emerald-50 p-3 text-sm font-medium text-emerald-900 dark:border-emerald-900 dark:bg-emerald-950/50 dark:text-emerald-200">
+            <ShieldCheck className="h-4 w-4 shrink-0" />
+            {PRIVACY_STATUS}
           </div>
-          <ul className="space-y-2 text-sm">
-            {[
-              'No facial recognition, enrolment photos or face templates',
-              'No person re-identification or cross-camera tracking',
-              'Labels describe states: "Pedestrian (Face Blurred)", "Vehicle on Ramp (Plate Masked)"',
-              'Faces are blurred on the edge node before any frame is stored; stored snapshots can never be un-blurred',
-              'Turning the shield off only un-blurs the live view for emergency verification, and is never recorded',
-              'Exports contain detection metadata only, never imagery of people',
-            ].map(t => (
-              <li key={t} className="flex gap-2">
-                <ShieldCheck className="h-4 w-4 shrink-0 text-emerald-600 mt-0.5" />
-                {t}
-              </li>
-            ))}
-          </ul>
+
+          <section className="space-y-2">
+            <h3 className="text-sm font-semibold">What is stored</h3>
+            <Checklist
+              items={[
+                'Detection metadata: class, camera, time, confidence and anonymous bounding boxes',
+                'One evidence snapshot per newly opened alert, with faces blurred on the edge node before the image leaves it. If blurring fails, no image is kept.',
+                'The audit trail of operator actions, snapshot views and exports',
+              ]}
+            />
+            <p className="text-xs text-muted-foreground">
+              Not stored: live video, recordings, uploaded sandbox clips, face templates or identities. No facial
+              recognition, re-identification or cross-camera tracking.
+            </p>
+          </section>
+
+          <section className="space-y-2">
+            <h3 className="text-sm font-semibold">Retention</h3>
+            <p className="text-sm">
+              Snapshots are deleted automatically after {settings.snapshotRetentionDays} days, or{' '}
+              {settings.resolvedSnapshotRetentionDays} days after the alert is resolved, whichever is sooner. Each deletion
+              run is logged. Change this under Retention.
+            </p>
+          </section>
+
+          <section className="space-y-2">
+            <h3 className="text-sm font-semibold">Who can view</h3>
+            <Checklist
+              items={[
+                'Authorised operators only, after signing in',
+                'Live view is transient and for authorised operators only; it is not recorded',
+                'Every snapshot view and export is logged with the operator’s name',
+              ]}
+            />
+          </section>
+
+          <section className="rounded-md border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900 dark:border-amber-900 dark:bg-amber-950/40 dark:text-amber-200">
+            <p className="font-semibold">Signage reminder</p>
+            <p className="mt-1 text-xs">
+              Put up a clear notice at every monitored zone saying that cameras are in use, why, who operates them and
+              how to contact the township management office.
+            </p>
+          </section>
+
+          <section className="space-y-2">
+            <h3 className="text-sm font-semibold">Roadmap</h3>
+            <ul className="space-y-1.5 text-sm">
+              {[
+                'Appoint a data protection officer',
+                'Complete a data protection impact assessment',
+                'Define a breach reporting procedure',
+                'Handle access and correction requests',
+                'Move the audit trail to an append-only server log',
+              ].map(t => (
+                <li key={t} className="flex gap-2">
+                  <CircleDashed className="h-4 w-4 shrink-0 text-muted-foreground mt-0.5" />
+                  {t}
+                </li>
+              ))}
+            </ul>
+          </section>
+
+          <p className="flex gap-2 border-t pt-3 text-xs text-muted-foreground">
+            <Scale className="h-4 w-4 shrink-0" />
+            This page describes how AnomalyGuard is designed. It is not legal advice; confirm your obligations under
+            the PDPA with a qualified adviser.
+          </p>
         </CardContent>
       </Card>
       <Card>
         <CardHeader>
           <CardTitle>Privacy audit trail</CardTitle>
-          <CardDescription>Every change to anonymisation, and every demo reset, is logged with the operator&apos;s name.</CardDescription>
+          <CardDescription>
+            Snapshot views and exports, retention changes and deletions, and demo resets, with the operator&apos;s name.
+          </CardDescription>
         </CardHeader>
         <CardContent className="space-y-2 max-h-[360px] overflow-y-auto">
           {audit.map(e => (
@@ -268,6 +322,88 @@ function PrivacySettings() {
         </CardContent>
       </Card>
     </div>
+  );
+}
+
+function RetentionSettings({ onOpenPrivacy }: { onOpenPrivacy: () => void }) {
+  const { settings, alerts, updateSettings, purgeExpiredSnapshots } = useAnomaly();
+  const { toast } = useToast();
+  const [stored, setStored] = useState<number | null>(null);
+  const [purging, setPurging] = useState(false);
+  const snapshotAlerts = alerts.filter(a => a.snapshot?.status === 'ready').length;
+
+  useEffect(() => {
+    storedSnapshotIds()
+      .then(ids => setStored(ids.length))
+      .catch(() => setStored(null));
+  }, [alerts]);
+
+  const daySelect = (value: number, options: number[], onChange: (v: number) => void) => (
+    <Select value={String(value)} onValueChange={v => onChange(Number(v))}>
+      <SelectTrigger>
+        <SelectValue />
+      </SelectTrigger>
+      <SelectContent>
+        {options.map(d => (
+          <SelectItem key={d} value={String(d)}>
+            {d} day{d > 1 ? 's' : ''}
+          </SelectItem>
+        ))}
+      </SelectContent>
+    </Select>
+  );
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>Evidence snapshot retention</CardTitle>
+        <CardDescription>
+          Only alert metadata and anonymised snapshots are stored; there is no footage to retain. Snapshots are
+          deleted automatically, whichever limit comes first. Changes are logged.
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-6 max-w-xl">
+        <div className="grid gap-4 sm:grid-cols-2">
+          <div className="space-y-2">
+            <Label>Delete after capture</Label>
+            {daySelect(settings.snapshotRetentionDays, RETENTION_DAYS, v => updateSettings({ snapshotRetentionDays: v }))}
+            <p className="text-xs text-muted-foreground">Default 30 days</p>
+          </div>
+          <div className="space-y-2">
+            <Label>Delete after the alert is resolved</Label>
+            {daySelect(settings.resolvedSnapshotRetentionDays, RESOLVED_RETENTION_DAYS, v =>
+              updateSettings({ resolvedSnapshotRetentionDays: v })
+            )}
+            <p className="text-xs text-muted-foreground">Default 7 days</p>
+          </div>
+        </div>
+        <div className="rounded-md border p-3 text-sm space-y-1">
+          <p className="font-medium">Stored in this browser</p>
+          <p className="text-xs text-muted-foreground">
+            {stored === null ? 'Snapshot store unavailable.' : `${stored} snapshot${stored === 1 ? '' : 's'} stored`} ·{' '}
+            {snapshotAlerts} alert{snapshotAlerts === 1 ? '' : 's'} with a viewable snapshot. Expired snapshots are
+            checked every minute.
+          </p>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          <Button
+            variant="outline"
+            disabled={purging}
+            onClick={async () => {
+              setPurging(true);
+              const n = await purgeExpiredSnapshots();
+              setPurging(false);
+              toast({ title: n ? `Deleted ${n} expired snapshot${n > 1 ? 's' : ''}` : 'No snapshots past retention' });
+            }}
+          >
+            Delete expired now
+          </Button>
+          <Button variant="ghost" onClick={onOpenPrivacy}>
+            What is stored?
+          </Button>
+        </div>
+      </CardContent>
+    </Card>
   );
 }
 

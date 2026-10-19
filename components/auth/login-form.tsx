@@ -122,8 +122,9 @@ export default function LoginForm() {
         <div className="mt-5 flex items-start gap-2 rounded-md border border-emerald-200 bg-emerald-50 p-3 text-xs text-emerald-900 dark:border-emerald-900 dark:bg-emerald-950/50 dark:text-emerald-200">
           <ShieldCheck className="h-4 w-4 shrink-0 mt-0.5" />
           <p>
-            PDPA Privacy Shield: AnomalyGuard detects object states, hazards and anonymous behaviour. It never
-            recognises or stores identities.
+            Privacy-by-design, aligned with PDPA principles: AnomalyGuard detects object states, hazards and anonymous
+            behaviour, with no facial recognition. Access is for authorised operators only, and evidence snapshots are
+            always anonymised.
           </p>
         </div>
         {isDemoLogin && (

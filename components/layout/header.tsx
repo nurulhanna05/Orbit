@@ -22,7 +22,7 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { PrivacyShieldBadge } from '@/components/anomaly/privacy-shield';
+import { PrivacyStatusBadge } from '@/components/anomaly/privacy-shield';
 import { SimulateMenu } from '@/components/anomaly/simulate-menu';
 import NavLinks from './nav-links';
 import { DETECTION_CLASSES, SEVERITY_META } from '@/lib/anomaly/taxonomy';
@@ -86,10 +86,10 @@ export default function Header() {
 
         <div className="flex-1 flex items-center justify-end gap-2 md:gap-3">
           <div className="hidden lg:block">
-            <PrivacyShieldBadge />
+            <PrivacyStatusBadge />
           </div>
           <div className="lg:hidden">
-            <PrivacyShieldBadge compact />
+            <PrivacyStatusBadge compact />
           </div>
           <div className="hidden md:block">
             <SimulateMenu />
