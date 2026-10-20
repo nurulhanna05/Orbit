@@ -1,13 +1,14 @@
 "use client"
 
 import { useEffect, useRef, useState } from 'react';
-import { Download, ImageOff, Loader2, ShieldCheck, Trash2 } from 'lucide-react';
+import { Download, ImageOff, ShieldCheck, Trash2 } from 'lucide-react';
 import type { Alert, BoundingBox, Camera } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import { ZoneScene, displayLabel } from './zone-feed';
 import { TONE_OVERLAY } from './status';
 import { downloadBlob, getSnapshot, snapshotExpiry } from '@/lib/anomaly/snapshot-store';
 import { useAnomaly } from '@/components/providers/anomaly-provider';
+import { OrbitSpinner } from '@/components/ui/orbit-spinner';
 
 // Maps a box in full-frame percentages onto a snapshot that shows only `crop` of the frame.
 function inCrop(b: BoundingBox, crop: [number, number, number, number] = [0, 0, 1, 1]): BoundingBox {
@@ -110,7 +111,7 @@ export function AlertSnapshot({ alert, camera, audited = false }: { alert: Alert
   }
   if (snapshot.status === 'processing') {
     return notice(
-      <Loader2 className="h-6 w-6 animate-spin" aria-hidden />,
+      <OrbitSpinner className="h-8 w-8" />,
       'Anonymising snapshot…',
       'The alert is live already. The snapshot attaches here once the edge node has blurred it.'
     );
@@ -129,7 +130,7 @@ export function AlertSnapshot({ alert, camera, audited = false }: { alert: Alert
       'The edge node could not anonymise this frame, so no image was kept. This is by design: it fails closed.'
     );
   }
-  if (!url || !blob) return notice(<Loader2 className="h-6 w-6 animate-spin" />, 'Loading snapshot…', '');
+  if (!url || !blob) return notice(<OrbitSpinner className="h-8 w-8" />, 'Loading snapshot…', '');
 
   const expiry = snapshotExpiry(alert, settings);
   return (

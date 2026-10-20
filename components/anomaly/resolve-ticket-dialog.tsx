@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useRef, useState } from 'react';
-import { Camera as CameraIcon, CheckCircle2, ImageOff, Loader2, ShieldCheck, Upload, X } from 'lucide-react';
+import { Camera as CameraIcon, CheckCircle2, ImageOff, ShieldCheck, Upload, X } from 'lucide-react';
 import type { Ticket } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
@@ -11,6 +11,7 @@ import { useAnomaly } from '@/components/providers/anomaly-provider';
 import { SnapshotInput, anonymisePhoto, isLiveBackend } from '@/lib/anomaly/api';
 import { afterPhotoKey, getSnapshot } from '@/lib/anomaly/snapshot-store';
 import { ZoneScene } from './zone-feed';
+import { OrbitSpinner } from '@/components/ui/orbit-spinner';
 
 const NO_HAZARDS = new Set<never>();
 
@@ -104,7 +105,7 @@ export function ResolveTicketDialog({ ticket, onClose }: { ticket: Ticket | null
               {busy === 'anonymising' ? (
                 frame(
                   <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 text-white">
-                    <Loader2 className="h-6 w-6 animate-spin" aria-hidden />
+                    <OrbitSpinner className="h-8 w-8" />
                     <p className="text-sm">Anonymising photo…</p>
                   </div>
                 )
@@ -178,7 +179,7 @@ export function ResolveTicketDialog({ ticket, onClose }: { ticket: Ticket | null
                 Cancel
               </Button>
               <Button onClick={submit} disabled={!!busy}>
-                {busy === 'saving' ? <Loader2 className="mr-2 h-4 w-4 animate-spin" aria-hidden /> : <CheckCircle2 className="mr-2 h-4 w-4" aria-hidden />}
+                {busy === 'saving' ? <OrbitSpinner className="mr-2" /> : <CheckCircle2 className="mr-2 h-4 w-4" aria-hidden />}
                 Mark resolved
               </Button>
             </DialogFooter>

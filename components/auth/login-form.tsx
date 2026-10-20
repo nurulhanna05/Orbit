@@ -9,9 +9,10 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { isDemoLogin, useAuth } from '@/components/providers/auth-provider';
-import { Loader2, ShieldCheck } from 'lucide-react';
+import { ShieldCheck } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { OrbitLogo } from '@/components/layout/orbit-logo';
+import { OrbitSpinner } from '@/components/ui/orbit-spinner';
 
 const loginSchema = z.object({
   username: z.string().min(1, { message: "Username is required" }),
@@ -111,7 +112,7 @@ export default function LoginForm() {
             <Button type="submit" className="w-full" disabled={isLoading}>
               {isLoading ? (
                 <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" aria-hidden />
+                  <OrbitSpinner className="mr-2" />
                   Logging in…
                 </>
               ) : (

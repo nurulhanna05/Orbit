@@ -108,6 +108,13 @@
 }
 
 @layer utilities {
+  /* Enter/exit animations (tailwindcss-animate) use the Orbit easing: settle in, accelerate out. */
+  .animate-in {
+    animation-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
+  }
+  .animate-out {
+    animation-timing-function: cubic-bezier(0.64, 0, 0.78, 0);
+  }
   /* Numbers that line up in tables and KPI tiles. */
   .tabular {
     font-variant-numeric: tabular-nums;

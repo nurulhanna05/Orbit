@@ -17,6 +17,7 @@ import {
 } from '@/lib/anomaly/snapshot-store';
 import { toast } from '@/hooks/use-toast';
 import { useAuth } from '@/components/providers/auth-provider';
+import { OrbitSpinner } from '@/components/ui/orbit-spinner';
 
 const STORAGE_KEY = 'anomalyguard-state';
 const MAX_ALERTS = 400;
@@ -718,7 +719,8 @@ export function AnomalyProvider({ children }: { children: React.ReactNode }) {
 
   if (!value) {
     return (
-      <div className="min-h-screen flex items-center justify-center text-muted-foreground text-sm">
+      <div role="status" className="flex min-h-screen flex-col items-center justify-center gap-3 text-sm text-muted-foreground">
+        <OrbitSpinner tone="brand" className="h-12 w-12 text-foreground" />
         Loading Orbit…
       </div>
     );

@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { formatDistanceStrict, formatDistanceToNow } from 'date-fns';
-import { CheckCircle2, ChevronDown, Image as ImageIcon, Loader2, RotateCcw, Search, Send, Ticket } from 'lucide-react';
+import { CheckCircle2, ChevronDown, Image as ImageIcon, RotateCcw, Search, Send, Ticket } from 'lucide-react';
 import type { Alert, DetectionClass, Severity } from '@/lib/types';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -30,6 +30,7 @@ import { REPORT_RETENTION_NOTE, ReportButton } from '@/components/anomaly/report
 import { CONTRACTORS, nameOf } from '@/lib/anomaly/seed';
 import { DETECTION_CLASSES, DETECTION_CLASS_LIST, SEVERITY_META, ZONE_LABELS } from '@/lib/anomaly/taxonomy';
 import { cn } from '@/lib/utils';
+import { OrbitSpinner } from '@/components/ui/orbit-spinner';
 
 export default function AlertsPage() {
   const { alerts, markAllAlertsRead } = useAnomaly();
@@ -188,7 +189,7 @@ function AlertRow({ alert, highlighted, onSnapshot }: { alert: Alert; highlighte
             <Button size="sm" variant="outline" onClick={onSnapshot}>
               {alert.snapshot?.status === 'processing' ? (
                 <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" aria-hidden />
+                  <OrbitSpinner className="mr-2" />
                   Snapshot…
                 </>
               ) : (

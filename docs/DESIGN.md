@@ -230,6 +230,30 @@ and nested sections use `h3` (`<CardTitle as="h3">`).
 - No 3D, no gradients, no pie charts.
 - Camera names, not IDs, on chart axes.
 
+## Motion
+
+Motion follows the logo: things arrive like a body settling into orbit, quickly at first and then easing
+gently into place, and leave by accelerating away. It is short and quiet, never decorative, and there are no
+page entrance animations.
+
+| Token (Tailwind) | Value | Use |
+|---|---|---|
+| `ease-orbit` (also the default for every `transition*` utility) | `cubic-bezier(0.22, 1, 0.36, 1)` | Anything arriving or changing state: hovers, tabs, switches, dialogs, menus, toasts |
+| `ease-orbit-in` | `cubic-bezier(0.64, 0, 0.78, 0)` | Anything leaving (applied to every `animate-out`) |
+| default duration | 200 ms | Hovers, colour and state changes, menus, popovers, toasts |
+| `duration-300` / `duration-150` | 300 ms in, 150 ms out | Dialogs: fade, settle from 97 % scale and rise 8 px |
+| `duration-300` / `duration-200` | 300 ms in, 200 ms out | Sheets (mobile navigation) sliding from their edge |
+| `duration-500` | 500 ms | Progress bars gliding to a new value |
+
+**Loading: `<OrbitSpinner>`** (`components/ui/orbit-spinner.tsx`) is the only loading indicator. It is the logo
+in miniature, a dot orbiting a tilted ring around an "O", once every 1.4 s. `tone="current"` (default) draws in the
+text colour for buttons and inline states; `tone="brand"` uses the logo's gold-to-blue ring for full-page
+loading. It always sits next to a text label ("Logging in…", "Anonymising photo…") or carries `label` itself.
+Generic spinning icons (`Loader2`, `animate-spin`) are not used.
+
+`prefers-reduced-motion: reduce` turns all CSS transitions and animations off globally. The spinner's orbit is
+an SVG animation that rule cannot reach, so the component checks the setting itself and holds the dot still.
+
 ## Accessibility checklist
 
 - Text meets 4.5:1 and UI graphics 3:1 in both themes (tables above).
@@ -241,7 +265,7 @@ and nested sections use `h3` (`<CardTitle as="h3">`).
   as well as hover.
 - Touch targets are at least 44 px below 768 px: buttons, inputs, selects, tabs and toggles grow to `min-h-11` (the min-size spacing scale is enabled in `tailwind.config.ts`, since Tailwind 3.3 lacks it),
   and switches and checkboxes have an invisible hit area that extends past their outline.
-- Motion: `prefers-reduced-motion: reduce` turns off transitions and animations globally. The asset
+- Motion: `prefers-reduced-motion: reduce` turns off transitions and animations globally, and the Orbit spinner stops orbiting. The asset
   ticker pauses on hover, on keyboard focus and with its pause button, and under reduced motion it does
   not move at all and scrolls by hand instead. Page entrance animations were removed.
 - Dark mode: every token has a dark value; components use tokens only, so both themes stay in step.

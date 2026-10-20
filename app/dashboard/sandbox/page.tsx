@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useRef, useState } from 'react';
-import { FlaskConical, ImageOff, Loader2, PlayCircle, Send, ShieldCheck, UploadCloud } from 'lucide-react';
+import { FlaskConical, ImageOff, PlayCircle, Send, ShieldCheck, UploadCloud } from 'lucide-react';
 import type { Alert, DetectionClass, ZoneType } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -19,6 +19,7 @@ import { DETECTION_CLASSES, DETECTION_CLASS_LIST, SEVERITY_META, ZONE_CLASSES, Z
 import { PageHeader } from '@/components/layout/page-header';
 import { SeverityBadge, SeverityIcon, StatusBadge, TONE_FILL, TONE_OVERLAY } from '@/components/anomaly/status';
 import { cn } from '@/lib/utils';
+import { OrbitSpinner } from '@/components/ui/orbit-spinner';
 
 // `snapshot` is the edge service's anonymised frame for a backend detection: null when it sent metadata
 // only, undefined for simulated detections, which have no frame at all.
@@ -342,7 +343,7 @@ export default function SandboxPage() {
             <Button className="w-full" disabled={processing || classes.length === 0} onClick={run}>
               {processing ? (
                 <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" aria-hidden /> Running analysis…
+                  <OrbitSpinner className="mr-2" /> Running analysis…
                 </>
               ) : (
                 <>

@@ -3,6 +3,7 @@
 import { useEffect } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import { useAuth } from '@/components/providers/auth-provider';
+import { OrbitSpinner } from '@/components/ui/orbit-spinner';
 
 const publicRoutes = ['/login', '/'];
 
@@ -27,7 +28,7 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
-        <div role="status" aria-label="Loading" className="h-12 w-12 animate-spin rounded-full border-b-2 border-t-2 border-foreground"></div>
+        <OrbitSpinner tone="brand" className="h-12 w-12" label="Loading" />
       </div>
     );
   }

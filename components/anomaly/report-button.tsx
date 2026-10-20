@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from 'react';
-import { FileText, Loader2 } from 'lucide-react';
+import { FileText } from 'lucide-react';
 import type { Alert, AppSettings, Asset, Camera, Ticket } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import { useAnomaly } from '@/components/providers/anomaly-provider';
@@ -12,6 +12,7 @@ import { afterPhotoKey, downloadBlob, getSnapshot } from '@/lib/anomaly/snapshot
 import type { ReportImage, ReportInput } from '@/lib/anomaly/report';
 import { sceneToPng } from './scene-image';
 import { cn } from '@/lib/utils';
+import { OrbitSpinner } from '@/components/ui/orbit-spinner';
 
 type Missing = { missing: string };
 
@@ -134,15 +135,14 @@ export function ReportButton({ alert, ticket, className, compact = false }: { al
     }
   };
 
-  const Icon = busy ? Loader2 : FileText;
   const label = 'Download report (.docx)';
   return compact ? (
     <Button size="icon" variant="ghost" className={cn('h-9 w-9', className)} onClick={download} disabled={busy} aria-label={label} title={label}>
-      <Icon className={cn('h-4 w-4', busy && 'animate-spin')} aria-hidden />
+      {busy ? <OrbitSpinner /> : <FileText className="h-4 w-4" aria-hidden />}
     </Button>
   ) : (
     <Button size="sm" variant="outline" className={cn('h-8', className)} onClick={download} disabled={busy}>
-      <Icon className={cn('mr-2 h-4 w-4', busy && 'animate-spin')} aria-hidden />
+      {busy ? <OrbitSpinner className="mr-2" /> : <FileText className="mr-2 h-4 w-4" aria-hidden />}
       {label}
     </Button>
   );

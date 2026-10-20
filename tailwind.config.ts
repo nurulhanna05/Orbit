@@ -15,6 +15,17 @@ const config: Config = {
       fontSize: {
         '2xs': ['0.6875rem', { lineHeight: '1rem' }],
       },
+      // Motion (docs/DESIGN.md → Motion). Things arrive like a body settling into orbit: fast, then a long
+      // gentle settle; they leave by accelerating away. DEFAULT applies to every `transition*` utility and,
+      // through tailwindcss-animate, to dialog, menu and toast enter/exit animations.
+      transitionTimingFunction: {
+        DEFAULT: 'cubic-bezier(0.22, 1, 0.36, 1)',
+        orbit: 'cubic-bezier(0.22, 1, 0.36, 1)',
+        'orbit-in': 'cubic-bezier(0.64, 0, 0.78, 0)',
+      },
+      transitionDuration: {
+        DEFAULT: '200ms',
+      },
       backgroundImage: {
         'gradient-radial': 'radial-gradient(var(--tw-gradient-stops))',
         'gradient-conic':

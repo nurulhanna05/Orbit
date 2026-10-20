@@ -19,7 +19,7 @@ const Progress = React.forwardRef<HTMLDivElement, ProgressProps>(({ className, v
       className={cn('relative h-2 w-full overflow-hidden rounded-full bg-muted', className)}
       {...props}
     >
-      <div className={cn('h-full w-full flex-1 bg-chart-strong transition-all', indicatorClassName)} style={{ transform: `translateX(-${100 - pct}%)` }} />
+      <div className={cn('h-full w-full flex-1 bg-chart-strong transition-transform duration-500', indicatorClassName)} style={{ transform: `translateX(-${100 - pct}%)` }} />
     </div>
   );
 });
