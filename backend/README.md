@@ -6,6 +6,7 @@ A minimal real backend for the dashboard's Model Sandbox. It implements the cont
 | Endpoint | What it does |
 |---|---|
 | `POST /api/v1/sandbox/analyse` | Multipart `file`, `classes`, `conf`. Samples about one frame per second with `yolov8n` and returns anonymous detections. Each newly opened detection carries an anonymised evidence snapshot. |
+| `POST /api/v1/evidence/anonymise` | Multipart `file` (an after-fix photo, at most 15 MB). Decoded in memory and blurred by the same fail-closed pipeline as evidence snapshots; returns the snapshot JSON, or `422` with no image if anonymisation fails. |
 | `GET /api/v1/detections?since=` | Returns `[]`. The live camera grid stays simulated. |
 
 ## What is real

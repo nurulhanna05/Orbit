@@ -85,6 +85,17 @@ export type Alert = {
   snapshot?: EvidenceSnapshot; // absent on simulated alerts, which have no camera frame
 };
 
+// A photo of the site after the repair, attached when a ticket is resolved. Real photos are anonymised by the
+// edge service with the same fail-closed blur as evidence snapshots, and the JPEG is kept in IndexedDB under
+// the same retention policy. Without a backend the photo is the simulated scene and no image is stored.
+export type AfterPhoto = {
+  status: 'ready' | 'deleted';
+  source: 'edge' | 'simulated';
+  capturedAt: string;
+  blurMs?: number;
+  deletedAt?: string;
+};
+
 export type TicketStatus = 'open' | 'in_progress' | 'resolved';
 
 export type Ticket = {
@@ -99,6 +110,8 @@ export type Ticket = {
   createdAt: string;
   startedAt?: string;
   resolvedAt?: string;
+  notes?: string; // resolution notes entered when the ticket is resolved
+  afterPhoto?: AfterPhoto;
   log: AlertEvent[];
 };
 

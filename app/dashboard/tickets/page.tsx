@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { formatDistanceToNow } from 'date-fns';
-import { ArrowRight, CheckCircle2, CircleCheck, HardHat, Phone, RotateCcw, Truck, Wrench } from 'lucide-react';
+import { ArrowRight, CheckCircle2, CircleCheck, HardHat, Image as ImageIcon, Phone, RotateCcw, Truck, Wrench } from 'lucide-react';
 import type { Ticket, TicketStatus } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -15,6 +15,8 @@ import { CONTRACTORS, nameOf } from '@/lib/anomaly/seed';
 import { cn } from '@/lib/utils';
 import { PageHeader } from '@/components/layout/page-header';
 import { SeverityBadge } from '@/components/anomaly/status';
+import { AfterPhotoDialog, ResolveTicketDialog } from '@/components/anomaly/resolve-ticket-dialog';
+import { REPORT_RETENTION_NOTE, ReportButton } from '@/components/anomaly/report-button';
 
 // Demo clock: crews travel 20x faster than real time so the board visibly moves during a pitch.
 const DEMO_SPEED = 20;
@@ -40,6 +42,8 @@ function fieldStatus(ticket: Ticket) {
 export default function TicketsPage() {
   const { tickets, tick } = useAnomaly();
   const [focus, setFocus] = useState<string | null>(null);
+  const [resolvingId, setResolvingId] = useState<string | null>(null);
+  const [photoId, setPhotoId] = useState<string | null>(null);
   const [showAllResolved, setShowAllResolved] = useState(false);
 
   useEffect(() => {
@@ -72,9 +76,18 @@ export default function TicketsPage() {
                 </h2>
                 <Badge variant="outline" className="bg-card">{items.length}</Badge>
               </div>
+              {col.status === 'resolved' && items.length > 0 && (
+                <p className="mb-3 text-xs text-muted-foreground">{REPORT_RETENTION_NOTE}</p>
+              )}
               <div className="space-y-3">
                 {shown.map(t => (
-                  <TicketCard key={t.id} ticket={t} highlighted={focus === t.id} />
+                  <TicketCard
+                    key={t.id}
+                    ticket={t}
+                    highlighted={focus === t.id}
+                    onResolve={() => setResolvingId(t.id)}
+                    onPhoto={() => setPhotoId(t.id)}
+                  />
                 ))}
                 {items.length === 0 && <p className="py-6 text-center text-sm text-muted-foreground">No tickets</p>}
                 {col.status === 'resolved' && items.length > 6 && (
@@ -89,6 +102,8 @@ export default function TicketsPage() {
       </div>
 
       <ContractorStrip />
+      <ResolveTicketDialog ticket={tickets.find(t => t.id === resolvingId) ?? null} onClose={() => setResolvingId(null)} />
+      <AfterPhotoDialog ticket={tickets.find(t => t.id === photoId) ?? null} onClose={() => setPhotoId(null)} />
     </div>
   );
 }
@@ -131,8 +146,9 @@ function ContractorStrip() {
   );
 }
 
-function TicketCard({ ticket, highlighted }: { ticket: Ticket; highlighted: boolean }) {
-  const { setTicketStatus, reassignTicket } = useAnomaly();
+function TicketCard({ ticket, highlighted, onResolve, onPhoto }: { ticket: Ticket; highlighted: boolean; onResolve: () => void; onPhoto: () => void }) {
+  const { alerts, setTicketStatus, reassignTicket } = useAnomaly();
+  const alert = alerts.find(a => a.id === ticket.alertId);
   const status = fieldStatus(ticket);
 
   return (
@@ -190,7 +206,7 @@ function TicketCard({ ticket, highlighted }: { ticket: Ticket; highlighted: bool
               </Button>
             )}
             {ticket.status === 'in_progress' && (
-              <Button size="sm" variant="outline" className="h-8" onClick={() => setTicketStatus(ticket.id, 'resolved')}>
+              <Button size="sm" variant="outline" className="h-8" onClick={onResolve}>
                 Mark resolved <CheckCircle2 className="ml-2 h-4 w-4" aria-hidden />
               </Button>
             )}
@@ -201,6 +217,17 @@ function TicketCard({ ticket, highlighted }: { ticket: Ticket; highlighted: bool
             )}
           </div>
         </div>
+
+        {ticket.status === 'resolved' && (
+          <div className="flex flex-wrap gap-2 border-t pt-3">
+            <ReportButton ticket={ticket} alert={alert} />
+            {ticket.afterPhoto && (
+              <Button size="sm" variant="ghost" className="h-8" onClick={onPhoto}>
+                <ImageIcon className="mr-2 h-4 w-4" aria-hidden /> After photo
+              </Button>
+            )}
+          </div>
+        )}
 
         <details className="text-xs text-muted-foreground">
           <summary className="cursor-pointer select-none rounded-sm py-1 max-md:py-3">Activity ({ticket.log.length})</summary>

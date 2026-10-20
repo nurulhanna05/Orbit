@@ -72,6 +72,27 @@ export function snapshotInput(d: EdgeDetection): SnapshotInput | null {
   }
 }
 
+// After-fix photo: the edge service blurs it with the same fail-closed pipeline as evidence snapshots.
+// Throws (and returns no image) whenever anonymisation did not succeed.
+export async function anonymisePhoto(file: Blob): Promise<SnapshotInput> {
+  if (!isLiveBackend()) throw new Error('No detection service is connected, so photos cannot be anonymised.');
+  const body = new FormData();
+  body.append('file', file);
+  let res: Response;
+  try {
+    res = await fetch(`${API_BASE}/api/v1/evidence/anonymise`, { method: 'POST', body });
+  } catch {
+    throw new Error(`The detection service at ${API_BASE} did not respond, so the photo was not kept.`);
+  }
+  if (!res.ok) {
+    const detail = await res.json().then(b => b?.detail, () => undefined);
+    throw new Error(typeof detail === 'string' ? detail : `The detection service returned an error (${res.status}).`);
+  }
+  const snap = snapshotInput({ snapshot: (await res.json()) as EdgeSnapshot } as EdgeDetection);
+  if (!snap) throw new Error('The anonymised photo could not be read, so it was discarded.');
+  return snap;
+}
+
 export async function fetchDetectionsSince(since: string): Promise<EdgeDetection[]> {
   if (!isLiveBackend()) return [];
   const res = await fetch(`${API_BASE}/api/v1/detections?since=${encodeURIComponent(since)}`);

@@ -42,6 +42,7 @@ ASSET_CROP_MIN = 0.3         # ...and are never narrower or shorter than this sh
 YUNET_MODEL = os.path.join(os.path.dirname(__file__), "models", "face_detection_yunet_2023mar.onnx")
 DEFAULT_CAMERA = "CAM-01"    # sandbox detections are attributed here; must be CAM-01..CAM-08
 MAX_UPLOAD_MB = 200
+MAX_PHOTO_MB = 15            # after-fix photos (POST /api/v1/evidence/anonymise)
 PERSON = 0                   # COCO class id
 
 # Only these two classes are produced by real inference; the dashboard simulates the rest.
@@ -292,6 +293,25 @@ async def analyse(file: UploadFile = File(...), classes: str = Form(""), conf: f
         if cap is not None:
             cap.release()
         os.remove(path)
+
+
+@app.post("/api/v1/evidence/anonymise")
+async def anonymise(file: UploadFile = File(...)):
+    """After-fix photo of a resolved ticket, anonymised exactly like an alert's snapshot.
+
+    The upload is decoded in memory and never written to disk. Fails closed: if the face blur cannot run,
+    the response is 422 and no image is returned."""
+    data = await file.read()
+    if len(data) > MAX_PHOTO_MB * 1024 * 1024:
+        raise HTTPException(413, f"Photo larger than {MAX_PHOTO_MB} MB")
+    frame = cv2.imdecode(np.frombuffer(data, np.uint8), cv2.IMREAD_COLOR)
+    del data
+    if frame is None:
+        raise HTTPException(400, "Could not decode the image")
+    snapshot = evidence_snapshot(frame, "after_fix", [])
+    if snapshot is None:
+        raise HTTPException(422, "The photo could not be anonymised, so it was discarded")
+    return snapshot
 
 
 @app.get("/api/v1/detections")

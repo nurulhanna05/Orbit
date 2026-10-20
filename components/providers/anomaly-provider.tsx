@@ -1,12 +1,20 @@
 "use client"
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
-import type { Alert, AppSettings, Camera, DetectionClass, Ticket, TicketStatus, WearEvent } from '@/lib/types';
+import type { AfterPhoto, Alert, AppSettings, Camera, DetectionClass, Ticket, TicketStatus, WearEvent } from '@/lib/types';
 import { AnomalyState, SEED_CAMERAS, STATE_VERSION, buildSeedState, defaultContractorFor, nameOf } from '@/lib/anomaly/seed';
 import { buildAlert, randomIncident, uid } from '@/lib/anomaly/simulator';
 import { DETECTION_CLASSES, SEVERITY_META } from '@/lib/anomaly/taxonomy';
 import { SnapshotInput, detectionToAlert, fetchDetectionsSince, isLiveBackend, snapshotInput } from '@/lib/anomaly/api';
-import { deleteSnapshot, putSnapshot, snapshotExpiry, storedSnapshotIds } from '@/lib/anomaly/snapshot-store';
+import {
+  afterPhotoExpiry,
+  afterPhotoKey,
+  deleteSnapshot,
+  putSnapshot,
+  snapshotExpiry,
+  storedSnapshotIds,
+  ticketIdOfKey,
+} from '@/lib/anomaly/snapshot-store';
 import { toast } from '@/hooks/use-toast';
 import { useAuth } from '@/components/providers/auth-provider';
 
@@ -29,10 +37,13 @@ type AnomalyContextType = AnomalyState & {
   reopenAlert: (id: string) => void;
   createTicketFromAlert: (alertId: string, contractorId?: string) => Ticket | null;
   setTicketStatus: (id: string, status: TicketStatus) => void;
+  resolveTicket: (id: string, resolution: { notes: string; photo: SnapshotInput | 'simulated' | null }) => Promise<void>;
   reassignTicket: (id: string, contractorId: string) => void;
   toggleCamera: (id: string) => void;
   updateCamera: (id: string, patch: Partial<Camera>) => void;
   logSnapshotAccess: (alertId: string, action: 'viewed' | 'exported') => void;
+  logAfterPhotoAccess: (ticketId: string, action: 'viewed' | 'exported') => void;
+  logReportExport: (reportId: string, subject: string) => void;
   purgeExpiredSnapshots: () => Promise<number>;
   updateSettings: (patch: Partial<AppSettings>) => void;
   resetDemo: () => void;
@@ -277,8 +288,16 @@ export function AnomalyProvider({ children }: { children: React.ReactNode }) {
       return 0;
     }
     const byId = new Map(current.alerts.map(a => [a.id, a]));
+    const ticketsById = new Map(current.tickets.map(tk => [tk.id, tk]));
     const t = Date.now();
     const expired = stored.filter(id => {
+      const ticketId = ticketIdOfKey(id);
+      if (ticketId) {
+        // An after-fix photo whose ticket is gone, or no longer points at a stored photo, is an orphan.
+        const ticket = ticketsById.get(ticketId);
+        const expiry = ticket?.afterPhoto?.status === 'ready' ? afterPhotoExpiry(ticket, current.settings) : null;
+        return !expiry || expiry.getTime() <= t;
+      }
       const alert = byId.get(id);
       const expiry = alert && snapshotExpiry(alert, current.settings);
       return !alert || (!!expiry && expiry.getTime() <= t);
@@ -312,7 +331,15 @@ export function AnomalyProvider({ children }: { children: React.ReactNode }) {
         if (lost.has(a.id) && a.snapshot.status === 'processing') return { ...a, snapshot: { ...a.snapshot, status: 'unavailable' as const } };
         return a;
       });
-      const ids = Array.from(deleted);
+      const tickets = s.tickets.map(tk =>
+        deleted.has(afterPhotoKey(tk.id)) && tk.afterPhoto?.source === 'edge'
+          ? { ...tk, afterPhoto: { ...tk.afterPhoto, status: 'deleted' as const, deletedAt: now() } }
+          : tk
+      );
+      const ids = Array.from(deleted).map(id => {
+        const ticketId = ticketIdOfKey(id);
+        return ticketId ? `after-fix photo of ${ticketId}` : id;
+      });
       const entry = ids.length
         ? [
             {
@@ -323,7 +350,7 @@ export function AnomalyProvider({ children }: { children: React.ReactNode }) {
             },
           ]
         : [];
-      return { ...s, alerts, audit: [...entry, ...s.audit] };
+      return { ...s, alerts, tickets, audit: [...entry, ...s.audit] };
     });
     return deleted.size;
   }, []);
@@ -523,6 +550,29 @@ export function AnomalyProvider({ children }: { children: React.ReactNode }) {
       return applyRepair({ ...s, alerts: s.alerts.map(a => (a.id === id ? resolved : a)) }, resolved);
     };
 
+    const ticketStatusState = (s: AnomalyState, id: string, status: TicketStatus, patch: Partial<Ticket> = {}): AnomalyState => {
+      const ticket = s.tickets.find(t => t.id === id);
+      if (!ticket || ticket.status === status) return s;
+      const label = { open: 'Re-opened', in_progress: 'Work started', resolved: 'Work completed' }[status];
+      const updated = withLog(
+        {
+          ...ticket,
+          ...patch,
+          status,
+          startedAt: status === 'in_progress' ? now() : status === 'open' ? undefined : ticket.startedAt,
+          resolvedAt: status === 'resolved' ? now() : undefined,
+        },
+        label
+      );
+      let next: AnomalyState = { ...s, tickets: s.tickets.map(t => (t.id === id ? updated : t)) };
+      if (ticket.alertId) {
+        if (status === 'resolved') next = resolveAlertState(next, ticket.alertId);
+        else if (ticket.status === 'resolved') next = reopenAlertState(next, ticket.alertId, `Re-opened with ${ticket.id}`);
+        else next = syncAlertToTicket(next, updated, `Dispatched to ${nameOf(updated.contractorId)}`);
+      }
+      return next;
+    };
+
     return {
       markAlertRead: (id: string) => mapAlert(id, a => ({ ...a, read: true })),
       markAllAlertsRead: () => update(s => ({ ...s, alerts: s.alerts.map(a => ({ ...a, read: true })) })),
@@ -566,28 +616,44 @@ export function AnomalyProvider({ children }: { children: React.ReactNode }) {
         }),
       reopenAlert: (id: string) => update(s => reopenAlertState(s, id, 'Re-opened')),
       createTicketFromAlert,
-      setTicketStatus: (id: string, status: TicketStatus) =>
-        update(s => {
-          const ticket = s.tickets.find(t => t.id === id);
-          if (!ticket || ticket.status === status) return s;
-          const label = { open: 'Re-opened', in_progress: 'Work started', resolved: 'Work completed' }[status];
-          const updated = withLog(
-            {
-              ...ticket,
-              status,
-              startedAt: status === 'in_progress' ? now() : status === 'open' ? undefined : ticket.startedAt,
-              resolvedAt: status === 'resolved' ? now() : undefined,
-            },
-            label
-          );
-          let next: AnomalyState = { ...s, tickets: s.tickets.map(t => (t.id === id ? updated : t)) };
-          if (ticket.alertId) {
-            if (status === 'resolved') next = resolveAlertState(next, ticket.alertId);
-            else if (ticket.status === 'resolved') next = reopenAlertState(next, ticket.alertId, `Re-opened with ${ticket.id}`);
-            else next = syncAlertToTicket(next, updated, `Dispatched to ${nameOf(updated.contractorId)}`);
+      setTicketStatus: (id: string, status: TicketStatus) => update(s => ticketStatusState(s, id, status)),
+      // Resolves a ticket with its resolution notes and after-fix photo. A real photo arrives already
+      // anonymised by the edge service; if it cannot be stored, the ticket is resolved without it.
+      resolveTicket: async (id: string, { notes, photo }: { notes: string; photo: SnapshotInput | 'simulated' | null }) => {
+        let afterPhoto: AfterPhoto | undefined;
+        if (photo === 'simulated') {
+          afterPhoto = { status: 'ready', source: 'simulated', capturedAt: now() };
+        } else if (photo) {
+          try {
+            await putSnapshot(afterPhotoKey(id), photo.jpeg);
+            afterPhoto = { status: 'ready', source: 'edge', capturedAt: now(), blurMs: photo.blurMs };
+          } catch (error) {
+            console.error('After-fix photo not stored:', error);
+            toast({ variant: 'destructive', title: 'After-fix photo not stored', description: `${id} was resolved without it.` });
           }
-          return next;
-        }),
+        }
+        const trimmed = notes.trim();
+        update(s => {
+          const next = ticketStatusState(s, id, 'resolved', { notes: trimmed || undefined, afterPhoto });
+          if (!afterPhoto) return next;
+          const how = afterPhoto.source === 'edge' ? 'anonymised at edge' : 'simulated scene';
+          return {
+            ...next,
+            tickets: next.tickets.map(t => (t.id === id ? withLog(t, `After-fix photo attached (${how})`) : t)),
+            audit: [auditEntry(`After-fix photo attached: ${id} (${how})`), ...next.audit],
+          };
+        });
+        // A new real photo overwrote any earlier one under the same key. Otherwise drop the earlier photo now:
+        // running the purge here would read state from before this update and delete the new photo too.
+        if (afterPhoto?.source !== 'edge') deleteSnapshot(afterPhotoKey(id)).catch(() => undefined);
+      },
+      logAfterPhotoAccess: (ticketId: string, action: 'viewed' | 'exported') =>
+        update(s => ({ ...s, audit: [auditEntry(`After-fix photo ${action}: ${ticketId}`), ...s.audit] })),
+      logReportExport: (reportId: string, subject: string) =>
+        update(s => ({
+          ...s,
+          audit: [auditEntry(`Report ${reportId} exported for ${subject} by ${actorRef.current} (includes evidence images)`), ...s.audit],
+        })),
       reassignTicket: (id: string, contractorId: string) =>
         update(s => {
           const ticket = s.tickets.find(t => t.id === id);

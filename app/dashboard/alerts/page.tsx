@@ -25,6 +25,8 @@ import { useAnomaly } from '@/components/providers/anomaly-provider';
 import { PageHeader } from '@/components/layout/page-header';
 import { SeverityBadge, TONE_ICON } from '@/components/anomaly/status';
 import { AlertSnapshot } from '@/components/anomaly/alert-snapshot';
+import { ResolveTicketDialog } from '@/components/anomaly/resolve-ticket-dialog';
+import { REPORT_RETENTION_NOTE, ReportButton } from '@/components/anomaly/report-button';
 import { CONTRACTORS, nameOf } from '@/lib/anomaly/seed';
 import { DETECTION_CLASSES, DETECTION_CLASS_LIST, SEVERITY_META, ZONE_LABELS } from '@/lib/anomaly/taxonomy';
 import { cn } from '@/lib/utils';
@@ -146,8 +148,11 @@ export default function AlertsPage() {
 }
 
 function AlertRow({ alert, highlighted, onSnapshot }: { alert: Alert; highlighted: boolean; onSnapshot: () => void }) {
-  const { dispatchAlert, resolveAlert, createTicketFromAlert, markAlertRead } = useAnomaly();
+  const { tickets, dispatchAlert, resolveAlert, createTicketFromAlert, markAlertRead } = useAnomaly();
   const [expanded, setExpanded] = useState(highlighted);
+  const [resolving, setResolving] = useState(false);
+  // An alert with an open ticket resolves through the ticket, so the after-fix photo and notes are captured.
+  const openTicket = tickets.find(t => t.id === alert.ticketId && t.status !== 'resolved');
   const meta = DETECTION_CLASSES[alert.detectionClass];
   const recommended = CONTRACTORS.filter(c => c.handles.includes(alert.detectionClass));
   const others = CONTRACTORS.filter(c => !c.handles.includes(alert.detectionClass));
@@ -232,7 +237,7 @@ function AlertRow({ alert, highlighted, onSnapshot }: { alert: Alert; highlighte
               </Button>
             )}
             {/* Row actions are all secondary: the page has many rows, so none of them gets the primary style. */}
-            <Button size="sm" variant="outline" onClick={() => resolveAlert(alert.id)}>
+            <Button size="sm" variant="outline" onClick={() => (openTicket ? setResolving(true) : resolveAlert(alert.id))}>
               <CheckCircle2 className="mr-2 h-4 w-4" aria-hidden />
               Resolve
             </Button>
@@ -257,18 +262,20 @@ function AlertRow({ alert, highlighted, onSnapshot }: { alert: Alert; highlighte
             ))}
           </ol>
         )}
+        <ResolveTicketDialog ticket={resolving ? openTicket ?? null : null} onClose={() => setResolving(false)} />
       </CardContent>
     </Card>
   );
 }
 
 function HistoryTable({ alerts, onSnapshot }: { alerts: Alert[]; onSnapshot: (a: Alert) => void }) {
-  const { reopenAlert } = useAnomaly();
+  const { reopenAlert, tickets } = useAnomaly();
   const [limit, setLimit] = useState(25);
   if (alerts.length === 0) return <p className="text-sm text-muted-foreground">No resolved alerts match these filters.</p>;
 
   return (
     <Card>
+      <p className="border-b p-3 text-xs text-muted-foreground">{REPORT_RETENTION_NOTE}</p>
       <CardContent className="p-0 overflow-x-auto">
         <table className="w-full text-sm">
           <thead className="border-b bg-muted text-left text-xs text-muted-foreground">
@@ -299,6 +306,7 @@ function HistoryTable({ alerts, onSnapshot }: { alerts: Alert[]; onSnapshot: (a:
                   <Button size="icon" variant="ghost" className="h-9 w-9" onClick={() => onSnapshot(a)} aria-label={`View snapshot for ${a.id}`}>
                     <ImageIcon className="h-4 w-4" aria-hidden />
                   </Button>
+                  <ReportButton compact alert={a} ticket={tickets.find(t => t.id === a.ticketId)} />
                   <Button size="sm" variant="outline" className="ml-2" onClick={() => reopenAlert(a.id)}>
                     <RotateCcw className="mr-2 h-4 w-4" aria-hidden />
                     Re-open

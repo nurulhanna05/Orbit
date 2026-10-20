@@ -240,7 +240,8 @@ function PrivacySettings() {
               items={[
                 'Detection metadata: class, camera, time, confidence and anonymous bounding boxes',
                 'One evidence snapshot per newly opened alert, with faces blurred on the edge node before the image leaves it. If blurring fails, no image is kept.',
-                'The audit trail of operator actions, snapshot views and exports',
+                'An optional after-fix photo per resolved ticket, blurred the same way and kept under the same retention policy',
+                'The audit trail of operator actions, snapshot views and exports, and report exports',
               ]}
             />
             <p className="text-xs text-muted-foreground">

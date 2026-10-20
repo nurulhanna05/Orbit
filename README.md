@@ -21,6 +21,8 @@ Orbit gives township operators situational awareness and predictive maintenance 
 | **Privacy & Compliance** page: what is stored, retention, who can view, signage, roadmap | `Settings → Privacy & Compliance`, `Settings → Retention` |
 | Alerts with Critical / Warning / Info severity, dispatch, resolved history with re-open | `Alerts` |
 | Maintenance tickets linked to detections, routed to contractors, reassignable, live crew status | `Maintenance Tickets` |
+| **After-fix photos**: resolving a ticket takes resolution notes and an optional photo of the repaired site, anonymised like evidence snapshots | `Maintenance Tickets → Mark resolved` |
+| **Incident reports (.docx)**: before and after photos side by side with times, location, contractor and notes, generated in the browser | `Download report (.docx)` on resolved tickets, report icon in `Alerts → Resolved history` |
 | Predictive maintenance: asset health ticker and wear log showing lifespan impact | `Asset Health` |
 | Analytics by class and camera, average confidence, CSV export for municipal audit | `Analytics & Reports` |
 | Camera online/offline toggles, warning/critical filters, confidence thresholds and inference intervals | `Cameras` |
@@ -57,11 +59,51 @@ Orbit is built privacy-by-design and aligned with PDPA principles. It is not cer
 - Faces are found by OpenCV YuNet (used only to locate regions to blur; nothing is recognised, stored or returned), unioned with the top 25% of every YOLOv8 person box. A person neither model detects is not blurred, so this is a strong best effort, not a guarantee that no face is ever present.
 - The dashboard shows an alert immediately and attaches its snapshot when it arrives (*processing* until then). Snapshots are stored in the browser's IndexedDB, never in `localStorage` state.
 - **Retention:** snapshots are deleted automatically after 30 days, or 7 days after the alert is resolved, whichever is sooner (configurable under `Settings → Retention`). Deletions are logged.
-- **Audit trail:** snapshot views and exports, retention changes, deletions and demo resets are logged with the operator's name. *Reset demo data* asks for confirmation and keeps the trail.
+- **After-fix photos** go through the same pipeline: the photo is sent to the edge service (`POST /api/v1/evidence/anonymise`), blurred in memory with the same fail-closed rules, and only the anonymised copy comes back. The browser never shows or stores the original. With no backend connected, the photo is the simulated scene of the repaired site, labelled *Simulated*, and no image is stored. Stored after-fix photos follow the same retention rules as snapshots.
+- **Exported reports leave the retention policy.** A downloaded `.docx` holds copies of the images, which are not deleted automatically. The app says so next to the report buttons, after each download and in the report itself: store reports securely and delete them when no longer needed.
+- **Audit trail:** snapshot views and exports, after-fix photos attached and viewed, report exports, retention changes, deletions and demo resets are logged with the operator's name. *Reset demo data* asks for confirmation and keeps the trail.
 - **Model Sandbox:** the uploaded clip plays as is, with boxes and labels overlaid. In demo mode it never leaves the browser. In backend mode the local edge service analyses it from a temp file it deletes straight afterwards, and returns only anonymised snapshots, shown at each detection marker.
 - Crowd density is a head-count only; individuals are never tracked across frames or cameras.
 - CSV exports contain detection metadata only.
 - In this demo the audit trail lives in the browser (`localStorage`). A production deployment would write it to an append-only server log.
+
+## Evidence storage, after-fix photos and reports
+
+### Where evidence is stored
+
+| What | Where | Key |
+|---|---|---|
+| Evidence snapshots (anonymised JPEGs) | Browser IndexedDB | `anomalyguard-snapshots`, one entry per alert id |
+| After-fix photos (anonymised JPEGs) | The same IndexedDB store | `after:<ticket id>` |
+| Alerts, tickets (including resolution notes), snapshot and photo metadata, settings, audit trail | Browser `localStorage` | `anomalyguard-state` |
+
+Nothing is stored on a server. **Clearing browser data for the site deletes all of it**: every snapshot and after-fix photo, every alert and ticket, and the audit trail, and the app starts again from the demo seed data. If only IndexedDB is cleared, alerts and tickets keep their metadata and show *No snapshot: metadata only* or *Not provided* for the missing images. Reports already downloaded are unaffected.
+
+### After-fix photo
+
+*Mark resolved* on a ticket (or *Resolve* on an alert that has an open ticket) opens a dialog with:
+
+- **Resolution notes**, which go into the ticket and the report.
+- **After-fix photo**, optional:
+  - With the backend connected: *Upload photo* (JPEG, PNG or WebP, at most 15 MB) or *Take photo* (opens the camera on phones and tablets; a file picker on desktop). The photo is anonymised by the edge service before anything is kept. If blurring fails, or the service does not respond, the photo is discarded and the dialog says so; the ticket can still be resolved without one.
+  - Without a backend: the simulated scene of the repaired site, attached by default and labelled *Simulated*.
+
+A resolved ticket with a photo shows *After photo*, which opens it; viewing a stored photo is logged.
+
+### Incident report (.docx)
+
+*Download report (.docx)* appears on resolved tickets and, as a report icon, on each row of `Alerts → Resolved history`. The document is built entirely in the browser with the [`docx`](https://www.npmjs.com/package/docx) package, loaded only when the button is clicked. No server is involved.
+
+One A4 page contains:
+
+- Report ID, ticket ID, alert ID, class and severity
+- Times detected, dispatched and resolved, in the township's timezone
+- Location: zone, camera, location name and asset
+- Contractor and resolution notes
+- *Before* and *After* images side by side, with captions saying how each was made (anonymised at edge, or simulated) and when, scaled to fit the page
+- Footer: *Images anonymised at capture. Generated by Orbit on &lt;date&gt;.*
+
+Contractors, cameras and assets appear by name, never by internal id. A missing image or field reads *Not provided*, with the reason (for example *Deleted under the retention policy on …*). Each export is written to the audit trail with the operator's name and the report ID.
 
 ## Running it
 
@@ -81,7 +123,7 @@ The dashboard runs fully on its own. To try the real YOLOv8 model in the Model S
 2. **Simulate incident → Person Fallen**: a critical toast fires and the feed shows a fallen posture.
 3. Click the feed: the live view is transient and not recorded. Open the alert's frame: the stored evidence is anonymised. With the backend running, push a Sandbox detection to show the *processing* state, the face-blurred snapshot, and the view and export entries in `Settings → Privacy & Compliance`.
 4. **Simulate → Pipe Leak**, then open **Alerts**: dispatch PipeFix and choose *Raise ticket*.
-5. **Maintenance Tickets**: *Start work*, watch the crew go *En route → On site*, try reassigning, then *Mark resolved*. The linked alert closes and the asset gets a partial repair.
+5. **Maintenance Tickets**: *Start work*, watch the crew go *En route → On site*, try reassigning, then *Mark resolved*: add resolution notes and an after-fix photo (simulated without the backend). The linked alert closes and the asset gets a partial repair. Click *Download report (.docx)* and open it to show the before and after images side by side.
 6. **Asset Health**: show the lifespan hit and repair in the wear log.
 7. **Analytics**: export the audit summary CSV.
 8. Turn on *Auto-generate incidents* on the Overview to keep the dashboard alive while you talk.
@@ -107,6 +149,9 @@ Production needs real authentication on the FastAPI service (session cookie or O
 ```
 app/dashboard/            Next.js App Router pages (all client-rendered, statically exported)
 components/anomaly/       Zone feed renderer, camera viewer, privacy status, alert snapshot, simulate menu, ticker
+  resolve-ticket-dialog.tsx  Resolve dialog (notes, after-fix photo) and the after-photo viewer
+  report-button.tsx       Gathers report data (names, times, images) and downloads the .docx
+  scene-image.ts          Renders a simulated scene to PNG for reports
 components/providers/
   anomaly-provider.tsx    Single client store: cameras, alerts, tickets, assets, wear log, settings
 lib/anomaly/
@@ -115,11 +160,12 @@ lib/anomaly/
   scenes.ts               Per-zone layout shared by the renderer and simulator
   seed.ts                 Cameras, contractors, assets and a week of seeded history
   api.ts                  FastAPI + YOLOv8 integration seam
-  snapshot-store.ts       IndexedDB store for anonymised snapshots, retention expiry
+  snapshot-store.ts       IndexedDB store for anonymised snapshots and after-fix photos, retention expiry
+  report.ts               .docx incident report builder (loaded on demand)
   infrastructure.ts       Edge node / IoT sensor telemetry mocks
   csv.ts                  Audit exports
 backend/                  Optional FastAPI + YOLOv8 edge service (see backend/README.md)
-  main.py                 Sandbox analysis with anonymised evidence snapshots, detections endpoint
+  main.py                 Sandbox analysis with anonymised evidence snapshots, after-fix photo anonymisation, detections endpoint
   test_snapshots.py       Checks snapshots against real clips for visible faces, fail-closed and asset crops
   requirements.txt        Python dependencies (venv, weights and samples are git-ignored)
 ```
@@ -172,6 +218,8 @@ To check snapshots for visible faces and measure blur time per snapshot, see [Ho
 | *Clip larger than 200 MB* | Trim or compress the clip. |
 | *Simulated detections · clip not analysed* | `NEXT_PUBLIC_ANOMALYGUARD_API` is not set. Add it to `.env.local` and restart `npm run dev`. |
 | A detection with *no snapshot (metadata only)* | Anonymisation failed or `models/face_detection_yunet_2023mar.onnx` is missing. By design, no image is kept. |
+| After-fix photo: *The photo could not be anonymised, so it was discarded* | Same cause as above. Resolve without a photo, or fix the face model and try again. |
+| After-fix photo: *Could not decode the image* or *Photo larger than 15 MB* | Use a JPEG, PNG or WebP under 15 MB. |
 
 ### API contract
 
@@ -179,6 +227,7 @@ Set `NEXT_PUBLIC_ANOMALYGUARD_API=http://localhost:8000` and the dashboard will:
 
 - poll `GET /api/v1/detections?since=<iso>` every 5s and ingest each result as an alert, gated by the camera and class confidence thresholds (the included backend returns `[]` here)
 - send sandbox clips to `POST /api/v1/sandbox/analyse` (multipart: `file`, `classes`, `conf`); each newly opened detection carries an anonymised snapshot
+- send after-fix photos to `POST /api/v1/evidence/anonymise` (multipart: `file`); the response is the same `snapshot` object as below, or `422` with no image if anonymisation failed
 
 The backend runs on CPU. In our tests, anonymising one snapshot took 0.47 s on average (at most 0.71 s), on top of about one sampled frame of analysis per second of video. See [Measured performance](#measured-performance).
 
@@ -433,7 +482,7 @@ None of these exist in the code yet.
 
 ## Tech stack
 
-Next.js 13 (App Router), TypeScript, Tailwind CSS, shadcn/ui (Radix), Recharts, date-fns, Framer Motion.
+Next.js 13 (App Router), TypeScript, Tailwind CSS, shadcn/ui (Radix), Recharts, date-fns, docx (incident reports).
 
 Optional backend: Python, FastAPI, Ultralytics YOLOv8 (`yolov8n`), OpenCV (YuNet face detector, used only to find regions to blur).
 
