@@ -47,13 +47,19 @@ function loadState(): AnomalyState {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (raw) {
       const parsed = JSON.parse(raw) as AnomalyState;
-      if (parsed.version === STATE_VERSION) return parsed;
-      if (parsed.version === 1) return migrateV1(parsed);
+      if (parsed.version === STATE_VERSION) return renameProduct(parsed);
+      if (parsed.version === 1) return renameProduct(migrateV1(parsed));
     }
   } catch (error) {
-    console.error('Error loading AnomalyGuard state:', error);
+    console.error('Error loading Orbit state:', error);
   }
   return buildSeedState();
+}
+
+// The product was renamed from AnomalyGuard to Orbit. A name the operator chose themselves is kept.
+function renameProduct(state: AnomalyState): AnomalyState {
+  if (state.settings.systemName !== 'AnomalyGuard') return state;
+  return { ...state, settings: { ...state.settings, systemName: 'Orbit' } };
 }
 
 // v1 had a Privacy Shield toggle; v2 always anonymises evidence snapshots and adds retention settings.
@@ -176,7 +182,7 @@ export function AnomalyProvider({ children }: { children: React.ReactNode }) {
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
     } catch (error) {
-      console.error('Error saving AnomalyGuard state:', error);
+      console.error('Error saving Orbit state:', error);
     }
   }, [state]);
 
@@ -647,7 +653,7 @@ export function AnomalyProvider({ children }: { children: React.ReactNode }) {
   if (!value) {
     return (
       <div className="min-h-screen flex items-center justify-center text-muted-foreground text-sm">
-        Loading AnomalyGuard…
+        Loading Orbit…
       </div>
     );
   }

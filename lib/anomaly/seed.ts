@@ -129,7 +129,7 @@ function asset(
 }
 
 export const DEFAULT_SETTINGS: AppSettings = {
-  systemName: 'AnomalyGuard',
+  systemName: 'Orbit',
   township: TOWNSHIP.subtitle,
   timezone: 'Asia/Kuala_Lumpur',
   snapshotRetentionDays: 30,

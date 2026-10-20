@@ -35,7 +35,7 @@ export default function AssetsPage() {
 
   const exportWear = () =>
     downloadCsv(
-      `anomalyguard-wear-log-${stamp()}.csv`,
+      `orbit-wear-log-${stamp()}.csv`,
       wear.map(w => ({
         timestamp: w.at,
         asset_id: w.assetId,

@@ -134,7 +134,7 @@ export default function AnalyticsPage() {
 
   const exportAlerts = () =>
     downloadCsv(
-      `anomalyguard-alerts-${range}-${stamp()}.csv`,
+      `orbit-alerts-${range}-${stamp()}.csv`,
       inRange.map((a: Alert) => ({
         alert_id: a.id,
         detected_at: a.createdAt,
@@ -154,7 +154,7 @@ export default function AnalyticsPage() {
     );
   const exportTickets = () =>
     downloadCsv(
-      `anomalyguard-tickets-${stamp()}.csv`,
+      `orbit-tickets-${stamp()}.csv`,
       tickets.map(t => ({
         ticket_id: t.id,
         title: t.title,
@@ -171,7 +171,7 @@ export default function AnalyticsPage() {
     );
   const exportSummary = () =>
     downloadCsv(
-      `anomalyguard-summary-${range}-${stamp()}.csv`,
+      `orbit-summary-${range}-${stamp()}.csv`,
       byClass.map(c => ({
         township: settings.township,
         period: range,

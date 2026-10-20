@@ -1,4 +1,4 @@
-"""AnomalyGuard edge service: a minimal real YOLOv8 backend for the dashboard.
+"""Orbit edge service: a minimal real YOLOv8 backend for the dashboard.
 
 Implements the contract in lib/anomaly/api.ts (EdgeDetection). Only two classes are real here:
 crowd_density (person count) and person_fallen (a rough box-shape heuristic). When a detection opens,
@@ -50,7 +50,7 @@ REAL_CLASSES = {"person_fallen", "crowd_density"}
 ASSET_CLASSES = {"lamp_off", "pipe_leak", "bin_overflow"}
 ALLOWED_ORIGINS = ["http://localhost:3000", "http://localhost:3123"]
 
-app = FastAPI(title="AnomalyGuard edge service")
+app = FastAPI(title="Orbit edge service")
 app.add_middleware(
     CORSMiddleware,
     allow_origins=ALLOWED_ORIGINS,

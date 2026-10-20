@@ -9,8 +9,9 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { isDemoLogin, useAuth } from '@/components/providers/auth-provider';
-import { Loader2, ScanEye, ShieldCheck } from 'lucide-react';
+import { Loader2, ShieldCheck } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { OrbitLogo } from '@/components/layout/orbit-logo';
 
 const loginSchema = z.object({
   username: z.string().min(1, { message: "Username is required" }),
@@ -21,7 +22,7 @@ type LoginFormValues = z.infer<typeof loginSchema>;
 
 export default function LoginForm() {
   const [isLoading, setIsLoading] = useState(false);
-  const [systemName, setSystemName] = useState('AnomalyGuard');
+  const [systemName, setSystemName] = useState('Orbit');
   const { login } = useAuth();
   const { toast } = useToast();
 
@@ -32,7 +33,8 @@ export default function LoginForm() {
         const savedSettings = localStorage.getItem('generalSettings');
         if (savedSettings) {
           const settings = JSON.parse(savedSettings);
-          if (settings.systemName) {
+          // Ignore the pre-rename default so older browsers show Orbit.
+          if (settings.systemName && settings.systemName !== 'AnomalyGuard') {
             setSystemName(settings.systemName);
           }
         }
@@ -72,12 +74,9 @@ export default function LoginForm() {
   return (
     <Card>
       <CardHeader className="space-y-1 text-center">
-        <div className="flex items-center justify-center">
-          <div className="mb-2 rounded-lg bg-primary p-2 text-primary-foreground">
-            <ScanEye className="h-8 w-8" aria-hidden />
-          </div>
-        </div>
-        <CardTitle as="h1" className="text-2xl font-semibold">{systemName}</CardTitle>
+        <CardTitle as="h1" className="flex justify-center">
+          <OrbitLogo className="h-24" alt={systemName} />
+        </CardTitle>
         <CardDescription>SDP Township · City of Elmina<br />Township operations &amp; predictive maintenance</CardDescription>
       </CardHeader>
       <CardContent>
@@ -124,7 +123,7 @@ export default function LoginForm() {
         <div className="mt-6 flex items-start gap-2 rounded-md border bg-muted p-3 text-xs text-muted-foreground">
           <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-foreground" aria-hidden />
           <p>
-            Privacy-by-design, aligned with PDPA principles: AnomalyGuard detects object states, hazards and anonymous
+            Privacy-by-design, aligned with PDPA principles: {systemName} detects object states, hazards and anonymous
             behaviour, with no facial recognition. Access is for authorised operators only, and evidence snapshots are
             always anonymised.
           </p>

@@ -43,9 +43,9 @@ export const TONE_CHART: Record<StatusTone, string> = {
 // Camera overlays sit on a drawn scene that looks the same in both themes, so they use fixed light-theme hexes.
 // Label text colour is chosen per fill for at least 4.5:1.
 export const TONE_OVERLAY: Record<Exclude<StatusTone, 'success'>, { fill: string; text: string }> = {
-  critical: { fill: '#701A75', text: '#FFFFFF' },
+  critical: { fill: '#B91C1C', text: '#FFFFFF' },
   warning: { fill: '#D97706', text: '#1C1917' },
-  info: { fill: '#2563EB', text: '#FFFFFF' },
+  info: { fill: '#475569', text: '#FFFFFF' },
   neutral: { fill: '#E7E5E4', text: '#1C1917' },
 };
 

@@ -88,7 +88,7 @@ export default function NavLinks({ onNavigate }: { onNavigate?: () => void }) {
                 className={cn(
                   buttonVariants({ variant: 'ghost', size: 'sm' }),
                   'relative w-full justify-start gap-3 font-normal',
-                  // Active item: brand-red indicator bar plus weight, so it never relies on colour alone.
+                  // Active item: Orbit-blue indicator bar plus weight, so it never relies on colour alone.
                   active
                     ? 'bg-accent font-semibold text-foreground before:absolute before:inset-y-1.5 before:left-0 before:w-1 before:rounded-full before:bg-primary'
                     : 'text-muted-foreground hover:text-foreground'

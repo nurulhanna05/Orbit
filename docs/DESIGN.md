@@ -1,6 +1,6 @@
-# AnomalyGuard design system
+# Orbit design system
 
-This is the reference for how the AnomalyGuard frontend looks and behaves. The tokens live in
+This is the reference for how the Orbit frontend looks and behaves. The tokens live in
 `app/globals.css` (CSS variables, light and dark) and are mapped to Tailwind names in `tailwind.config.ts`.
 Status presentation (icons, labels, chart fills, overlay colours) lives in `components/anomaly/status.tsx`.
 If you need a colour, it should come from one of these. Raw Tailwind palette classes (`emerald-600`,
@@ -11,7 +11,7 @@ If you need a colour, it should come from one of these. Raw Tailwind palette cla
 1. **One question per page.** Each page header states the question it answers, and the most important
    information sits top-left. The Overview fits on one 1920×1080 screen.
 2. **Show each fact once.** No duplicate widgets; long tables sit in tabs or lower on the page.
-3. **Mostly neutrals. Colour means something.** Brand red is for brand surfaces only. Status colours are
+3. **Mostly neutrals. Colour means something.** Orbit blue is for brand surfaces only. Status colours are
    for status only. The same colour never means two things on one screen, and a chart uses one colour
    system, never two.
 4. **Never colour alone.** Every severity or status shows an icon and a text label as well.
@@ -20,35 +20,59 @@ If you need a colour, it should come from one of these. Raw Tailwind palette cla
 
 ## Colour
 
+### Logo
+
+The logo is the Orbit wordmark: a gold-to-blue ring around the "O". It comes in two colourways in
+`public/brand/`:
+
+| File | Text | Ring | Use on |
+|---|---|---|---|
+| `orbit-logo-light.svg` | Navy `#0B1846` | Muted gold `#E9A93A` to blue `#2F7FD0` | Light theme |
+| `orbit-logo-dark.svg` | Cream `#F5F6F2` | Bright gold `#FFC23D` to blue `#22A6FF`, with glow | Dark theme |
+
+Use `<OrbitLogo>` (`components/layout/orbit-logo.tsx`). It renders both files, and the theme class shows
+the right one. The header uses it at 40 px high, the login card at 96 px. Don't recolour it or put it on a coloured
+fill. The favicon (`app/icon.svg`) is the ringed "O" on a navy tile, so it works on light and dark
+browser tabs.
+
 ### Brand
 
-| Colour | Hex | Use | Never |
-|---|---|---|---|
-| Heritage Red | `#C9322D` | Primary button (one per view), active nav indicator bar, logo mark | Status, charts, errors |
-| Heritage Red, strong | `#941B1E` | Primary button hover; key text links on light backgrounds | |
-| Heritage Gold | `#FBBC76` | Brand moments only: the soft wash on the login page | White text on it; gold text on white; anything near a warning |
-| Coral | `#F46C6C` | Decorative tints only (login wash) | Warnings or any status |
+The UI palette is taken from the logo. The neutrals are tinted with the logo's navy, and the brand colour is the blue end
+of the ring.
 
-Gold is kept away from data screens on purpose: it sits too close to the amber warning colour, and
-"never the same colour for two meanings on one screen" matters more than using the accent everywhere.
+| Colour | Light | Dark | Use | Never |
+|---|---|---|---|---|
+| Orbit navy | `#0B1846` | | Body text and headings in light mode; text on blue in dark mode | |
+| Orbit cream | | `#F5F6F2` | Body text and headings in dark mode | |
+| Orbit blue | `#1D6BC0` | `#22A6FF` | Primary button (one per view), active nav indicator bar | Status, charts, errors |
+| Orbit blue, strong | `#15529A` | `#63BFFF` | Primary button hover; key text links (`link`: `#15529A` / `#8FD6FF`) | |
 
-### Status palette, and why critical is plum
+The logo's ring blue `#2F7FD0` holds white text at only 4.1:1, so light mode uses the slightly deeper
+`#1D6BC0` (5.4:1). Dark mode uses the logo's bright `#22A6FF` with navy text (6.5:1), the same pairing as
+the logo itself.
+
+The logo's gold is not a UI colour. It sits too close to the amber warning colour, and "never the same
+colour for two meanings on one screen" matters more than echoing the logo. It appears only in the logo itself.
+
+### Status palette, and why info is slate
 
 Critical, warning, info and success each have three tokens: a solid (`critical`) for icons, bars and chart
 marks; a soft background (`critical-soft`); and a text colour (`critical-fg`).
 
-**Critical is plum (`#701A75` light, `#D946EF` dark), not red.** The brand is red, so a red critical
-would make every primary button look like an alarm and every alarm look like branding. Plum is still
-"hot", it reads as distinct from the brand red at a glance, and it stays distinct for all three common
-types of colour blindness (table below). Critical badges also carry the octagon icon and the word
-"Critical", so the meaning never rests on hue.
+**Critical is red** (`#B91C1C` light, `#F87171` dark). The brand is blue, so red can mean "alarm" and nothing else.
+
+**Info is slate (`#475569` light, `#94A3B8` dark), not blue.** A blue info would make every primary button
+look like a notice. Violet was tried as well, but people with red-green colour blindness see it as the
+same colour as the brand blue (ΔE about 2 to 6). Slate stays distinct from the brand for all three common types of colour
+blindness (table below), and info is the lowest severity, so a quieter colour suits it. Info badges also carry the
+circled "i" icon and the word "Info", so the meaning never rests on hue.
 
 | Status | Icon (lucide) | Light solid | Dark solid | Typical label |
 |---|---|---|---|---|
-| Critical | `OctagonAlert` | `#701A75` | `#D946EF` | Critical |
+| Critical | `OctagonAlert` | `#B91C1C` | `#F87171` | Critical |
 | Warning | `TriangleAlert` | `#D97706` | `#FBBF24` | Warning, Budget now |
-| Info | `Info` | `#2563EB` | `#BAE6FD` | Info |
-| Success | `CircleCheck` | `#0F766E` | `#14B8A6` | Healthy, Repair, In alert centre |
+| Info | `Info` | `#475569` | `#94A3B8` | Info |
+| Success | `CircleCheck` | `#047857` | `#34D399` | Healthy, Repair, In alert centre |
 
 Use `<SeverityBadge severity>` or `<StatusBadge tone>` from `components/anomaly/status.tsx`. They render
 the icon and the label together.
@@ -61,93 +85,90 @@ Everything the model sees in passing (people, vehicles) is outlined in neutral g
 
 | Token | Tailwind | Light | Dark | Role |
 |---|---|---|---|---|
-| `--background` | `background` | `#FAFAF9` | `#0C0A09` | Page background |
-| `--foreground` | `foreground` | `#1C1917` | `#FAFAF9` | Body text, headings |
-| `--card` | `card` | `#FFFFFF` | `#1C1917` | Cards, sidebar, header |
-| `--card-foreground` | `card-foreground` | `#1C1917` | `#FAFAF9` | Text on cards |
-| `--popover` | `popover` | `#FFFFFF` | `#1C1917` | Menus, dialogs |
-| `--popover-foreground` | `popover-foreground` | `#1C1917` | `#FAFAF9` | Text in menus, dialogs |
-| `--muted` | `muted` | `#F5F5F4` | `#292524` | Subtle fills: table headers, tab rails |
-| `--muted-foreground` | `muted-foreground` | `#57534E` | `#A8A29E` | Secondary text, captions |
-| `--secondary` | `secondary` | `#F5F5F4` | `#292524` | Secondary buttons |
-| `--secondary-foreground` | `secondary-foreground` | `#1C1917` | `#FAFAF9` | Text on secondary buttons |
-| `--accent` | `accent` | `#F5F5F4` | `#292524` | Hover and selected fills (UI state, not the brand accent) |
-| `--accent-foreground` | `accent-foreground` | `#1C1917` | `#FAFAF9` | Text on hover fills |
-| `--border` | `border` | `#E7E5E4` | `#3A3532` | Card and divider lines (decorative) |
-| `--input` | `input` | `#8A847F` | `#78716C` | Form control borders (must reach 3:1) |
-| `--ring` | `ring` | `#1C1917` | `#FAFAF9` | Keyboard focus ring |
-| `--primary` | `bg-primary / brand` | `#C9322D` | `#C9322D` | Brand red: primary button, active nav, logo mark |
-| `--primary-foreground` | `text-primary-foreground` | `#FFFFFF` | `#FFFFFF` | Text on brand red |
-| `--brand-strong` | `brand-strong` | `#941B1E` | `#941B1E` | Brand red hover / pressed |
-| `--link` | `link` | `#941B1E` | `#FCA5A1` | Key text links |
-| `--gold` | `gold` | `#FBBC76` | `#FBBC76` | Heritage Gold: brand moments only (login), dark text only |
-| `--gold-foreground` | `text-gold-foreground` | `#1C1917` | `#1C1917` | Text on gold |
-| `--coral` | `coral` | `#F46C6C` | `#F46C6C` | Coral: decorative tints only |
-| `--destructive` | `destructive` | `#701A75` | `#D946EF` | Destructive / error toasts (same as critical) |
-| `--destructive-foreground` | `destructive-foreground` | `#FFFFFF` | `#1C1917` | Text on destructive |
-| `--critical` | `critical` | `#701A75` | `#D946EF` | Critical: icons, bars, chart fills |
-| `--critical-soft` | `bg-critical-soft` | `#FDF4FF` | `#3B0A3F` | Critical badge / callout background |
-| `--critical-fg` | `text-critical-fg` | `#701A75` | `#F0ABFC` | Critical text |
+| `--background` | `background` | `#F6F7FA` | `#070C1F` | Page background |
+| `--foreground` | `foreground` | `#0B1846` | `#F5F6F2` | Body text, headings (Orbit navy / Orbit cream) |
+| `--card` | `card` | `#FFFFFF` | `#0E1530` | Cards, sidebar, header |
+| `--card-foreground` | `card-foreground` | `#0B1846` | `#F5F6F2` | Text on cards |
+| `--popover` | `popover` | `#FFFFFF` | `#0E1530` | Menus, dialogs |
+| `--popover-foreground` | `popover-foreground` | `#0B1846` | `#F5F6F2` | Text in menus, dialogs |
+| `--muted` | `muted` | `#EEF1F6` | `#18213F` | Subtle fills: table headers, tab rails |
+| `--muted-foreground` | `muted-foreground` | `#4A5372` | `#A3ACC7` | Secondary text, captions |
+| `--secondary` | `secondary` | `#EEF1F6` | `#18213F` | Secondary buttons |
+| `--secondary-foreground` | `secondary-foreground` | `#0B1846` | `#F5F6F2` | Text on secondary buttons |
+| `--accent` | `accent` | `#EEF1F6` | `#18213F` | Hover and selected fills (UI state, not the brand accent) |
+| `--accent-foreground` | `accent-foreground` | `#0B1846` | `#F5F6F2` | Text on hover fills |
+| `--border` | `border` | `#DFE3EC` | `#263052` | Card and divider lines (decorative) |
+| `--input` | `input` | `#7F88A3` | `#6B7598` | Form control borders (must reach 3:1) |
+| `--ring` | `ring` | `#0B1846` | `#F5F6F2` | Keyboard focus ring |
+| `--primary` | `bg-primary / brand` | `#1D6BC0` | `#22A6FF` | Orbit blue: primary button, active nav |
+| `--primary-foreground` | `text-primary-foreground` | `#FFFFFF` | `#0B1846` | Text on Orbit blue |
+| `--brand-strong` | `brand-strong` | `#15529A` | `#63BFFF` | Orbit blue hover / pressed |
+| `--link` | `link` | `#15529A` | `#8FD6FF` | Key text links |
+| `--destructive` | `destructive` | `#B91C1C` | `#F87171` | Destructive / error toasts (same as critical) |
+| `--destructive-foreground` | `destructive-foreground` | `#FFFFFF` | `#0B1846` | Text on destructive |
+| `--critical` | `critical` | `#B91C1C` | `#F87171` | Critical: icons, bars, chart fills |
+| `--critical-soft` | `bg-critical-soft` | `#FEF2F2` | `#3B0D14` | Critical badge / callout background |
+| `--critical-fg` | `text-critical-fg` | `#991B1B` | `#FCA5A5` | Critical text |
 | `--warning` | `warning` | `#D97706` | `#FBBF24` | Warning: icons, bars, chart fills |
 | `--warning-soft` | `bg-warning-soft` | `#FFFBEB` | `#332106` | Warning badge background |
 | `--warning-fg` | `text-warning-fg` | `#92400E` | `#FCD34D` | Warning text |
-| `--info` | `info` | `#2563EB` | `#BAE6FD` | Info: icons, bars, chart fills |
-| `--info-soft` | `bg-info-soft` | `#EFF6FF` | `#0C1E3D` | Info badge background |
-| `--info-fg` | `text-info-fg` | `#1E40AF` | `#BAE6FD` | Info text |
-| `--success` | `success` | `#0F766E` | `#14B8A6` | Healthy / done: icons, bars |
-| `--success-soft` | `bg-success-soft` | `#F0FDFA` | `#042F2E` | Success badge background |
-| `--success-fg` | `text-success-fg` | `#115E59` | `#5EEAD4` | Success text |
-| `--chart-muted` | `chart-muted` | `#8A847F` | `#78716C` | Chart bars that are context, not the point |
-| `--chart-strong` | `chart-strong` | `#44403C` | `#E7E5E4` | The one chart bar that is the point |
+| `--info` | `info` | `#475569` | `#94A3B8` | Info: icons, bars, chart fills |
+| `--info-soft` | `bg-info-soft` | `#F1F5F9` | `#1A2236` | Info badge background |
+| `--info-fg` | `text-info-fg` | `#334155` | `#CBD5E1` | Info text |
+| `--success` | `success` | `#047857` | `#34D399` | Healthy / done: icons, bars |
+| `--success-soft` | `bg-success-soft` | `#ECFDF5` | `#022C22` | Success badge background |
+| `--success-fg` | `text-success-fg` | `#065F46` | `#6EE7B7` | Success text |
+| `--chart-muted` | `chart-muted` | `#7F88A3` | `#6B7598` | Chart bars that are context, not the point |
+| `--chart-strong` | `chart-strong` | `#1E2A4F` | `#DDE3F0` | The one chart bar that is the point |
 
 ### Contrast and colour-blind check
 
 | Pair | Light | Ratio | Dark | Ratio | Needs |
 |---|---|---|---|---|---|
-| foreground on background | `#1C1917` on `#FAFAF9` | 16.74 | `#FAFAF9` on `#0C0A09` | 18.92 | 4.5:1 text |
-| foreground on card | `#1C1917` on `#FFFFFF` | 17.49 | `#FAFAF9` on `#1C1917` | 16.74 | 4.5:1 text |
-| muted-foreground on background | `#57534E` on `#FAFAF9` | 7.30 | `#A8A29E` on `#0C0A09` | 7.83 | 4.5:1 text |
-| muted-foreground on card | `#57534E` on `#FFFFFF` | 7.63 | `#A8A29E` on `#1C1917` | 6.93 | 4.5:1 text |
-| muted-foreground on muted | `#57534E` on `#F5F5F4` | 6.99 | `#A8A29E` on `#292524` | 6.01 | 4.5:1 text |
-| primary-foreground on primary | `#FFFFFF` on `#C9322D` | 5.28 | `#FFFFFF` on `#C9322D` | 5.28 | 4.5:1 text |
-| primary-foreground on brand-strong | `#FFFFFF` on `#941B1E` | 8.63 | `#FFFFFF` on `#941B1E` | 8.63 | 4.5:1 text |
-| link on card | `#941B1E` on `#FFFFFF` | 8.63 | `#FCA5A1` on `#1C1917` | 9.19 | 4.5:1 text |
-| gold-foreground on gold | `#1C1917` on `#FBBC76` | 10.46 | `#1C1917` on `#FBBC76` | 10.46 | 4.5:1 text |
-| critical-fg on critical-soft | `#701A75` on `#FDF4FF` | 9.34 | `#F0ABFC` on `#3B0A3F` | 9.17 | 4.5:1 text |
-| critical-fg on card | `#701A75` on `#FFFFFF` | 10.03 | `#F0ABFC` on `#1C1917` | 9.94 | 4.5:1 text |
+| foreground on background | `#0B1846` on `#F6F7FA` | 15.89 | `#F5F6F2` on `#070C1F` | 17.89 | 4.5:1 text |
+| foreground on card | `#0B1846` on `#FFFFFF` | 17.03 | `#F5F6F2` on `#0E1530` | 16.56 | 4.5:1 text |
+| muted-foreground on background | `#4A5372` on `#F6F7FA` | 7.07 | `#A3ACC7` on `#070C1F` | 8.58 | 4.5:1 text |
+| muted-foreground on card | `#4A5372` on `#FFFFFF` | 7.58 | `#A3ACC7` on `#0E1530` | 7.94 | 4.5:1 text |
+| muted-foreground on muted | `#4A5372` on `#EEF1F6` | 6.69 | `#A3ACC7` on `#18213F` | 6.99 | 4.5:1 text |
+| primary-foreground on primary | `#FFFFFF` on `#1D6BC0` | 5.36 | `#0B1846` on `#22A6FF` | 6.46 | 4.5:1 text |
+| primary-foreground on brand-strong | `#FFFFFF` on `#15529A` | 7.76 | `#0B1846` on `#63BFFF` | 8.45 | 4.5:1 text |
+| foreground on muted | `#0B1846` on `#EEF1F6` | 15.04 | `#F5F6F2` on `#18213F` | 14.57 | 4.5:1 text |
+| link on card | `#15529A` on `#FFFFFF` | 7.76 | `#8FD6FF` on `#0E1530` | 11.32 | 4.5:1 text |
+| critical-fg on critical-soft | `#991B1B` on `#FEF2F2` | 7.60 | `#FCA5A5` on `#3B0D14` | 8.83 | 4.5:1 text |
+| critical-fg on card | `#991B1B` on `#FFFFFF` | 8.31 | `#FCA5A5` on `#0E1530` | 9.47 | 4.5:1 text |
 | warning-fg on warning-soft | `#92400E` on `#FFFBEB` | 6.84 | `#FCD34D` on `#332106` | 10.70 | 4.5:1 text |
-| warning-fg on card | `#92400E` on `#FFFFFF` | 7.09 | `#FCD34D` on `#1C1917` | 12.13 | 4.5:1 text |
-| info-fg on info-soft | `#1E40AF` on `#EFF6FF` | 8.01 | `#BAE6FD` on `#0C1E3D` | 12.47 | 4.5:1 text |
-| info-fg on card | `#1E40AF` on `#FFFFFF` | 8.72 | `#BAE6FD` on `#1C1917` | 13.18 | 4.5:1 text |
-| success-fg on success-soft | `#115E59` on `#F0FDFA` | 7.27 | `#5EEAD4` on `#042F2E` | 9.78 | 4.5:1 text |
-| success-fg on card | `#115E59` on `#FFFFFF` | 7.58 | `#5EEAD4` on `#1C1917` | 11.82 | 4.5:1 text |
-| destructive-foreground on destructive | `#FFFFFF` on `#701A75` | 10.03 | `#1C1917` on `#D946EF` | 5.06 | 4.5:1 text |
-| input on card | `#8A847F` on `#FFFFFF` | 3.69 | `#78716C` on `#1C1917` | 3.65 | 3.0:1 graphic |
-| ring on background | `#1C1917` on `#FAFAF9` | 16.74 | `#FAFAF9` on `#0C0A09` | 18.92 | 3.0:1 graphic |
-| primary on card | `#C9322D` on `#FFFFFF` | 5.28 | `#C9322D` on `#1C1917` | 3.31 | 3.0:1 graphic |
-| critical on card | `#701A75` on `#FFFFFF` | 10.03 | `#D946EF` on `#1C1917` | 5.06 | 3.0:1 graphic |
-| warning on card | `#D97706` on `#FFFFFF` | 3.19 | `#FBBF24` on `#1C1917` | 10.48 | 3.0:1 graphic |
-| info on card | `#2563EB` on `#FFFFFF` | 5.17 | `#BAE6FD` on `#1C1917` | 13.18 | 3.0:1 graphic |
-| success on card | `#0F766E` on `#FFFFFF` | 5.47 | `#14B8A6` on `#1C1917` | 7.03 | 3.0:1 graphic |
-| chart-muted on card | `#8A847F` on `#FFFFFF` | 3.69 | `#78716C` on `#1C1917` | 3.65 | 3.0:1 graphic |
-| chart-strong on card | `#44403C` on `#FFFFFF` | 10.27 | `#E7E5E4` on `#1C1917` | 13.93 | 3.0:1 graphic |
+| warning-fg on card | `#92400E` on `#FFFFFF` | 7.09 | `#FCD34D` on `#0E1530` | 12.46 | 4.5:1 text |
+| info-fg on info-soft | `#334155` on `#F1F5F9` | 9.45 | `#CBD5E1` on `#1A2236` | 10.67 | 4.5:1 text |
+| info-fg on card | `#334155` on `#FFFFFF` | 10.35 | `#CBD5E1` on `#0E1530` | 12.10 | 4.5:1 text |
+| success-fg on success-soft | `#065F46` on `#ECFDF5` | 7.29 | `#6EE7B7` on `#022C22` | 9.94 | 4.5:1 text |
+| success-fg on card | `#065F46` on `#FFFFFF` | 7.68 | `#6EE7B7` on `#0E1530` | 11.79 | 4.5:1 text |
+| destructive-foreground on destructive | `#FFFFFF` on `#B91C1C` | 6.47 | `#0B1846` on `#F87171` | 6.16 | 4.5:1 text |
+| input on card | `#7F88A3` on `#FFFFFF` | 3.53 | `#6B7598` on `#0E1530` | 3.96 | 3.0:1 graphic |
+| ring on background | `#0B1846` on `#F6F7FA` | 15.89 | `#F5F6F2` on `#070C1F` | 17.89 | 3.0:1 graphic |
+| primary on card | `#1D6BC0` on `#FFFFFF` | 5.36 | `#22A6FF` on `#0E1530` | 6.82 | 3.0:1 graphic |
+| critical on card | `#B91C1C` on `#FFFFFF` | 6.47 | `#F87171` on `#0E1530` | 6.50 | 3.0:1 graphic |
+| warning on card | `#D97706` on `#FFFFFF` | 3.19 | `#FBBF24` on `#0E1530` | 10.76 | 3.0:1 graphic |
+| info on card | `#475569` on `#FFFFFF` | 7.58 | `#94A3B8` on `#0E1530` | 7.01 | 3.0:1 graphic |
+| success on card | `#047857` on `#FFFFFF` | 5.48 | `#34D399` on `#0E1530` | 9.35 | 3.0:1 graphic |
+| chart-muted on card | `#7F88A3` on `#FFFFFF` | 3.53 | `#6B7598` on `#0E1530` | 3.96 | 3.0:1 graphic |
+| chart-strong on card | `#1E2A4F` on `#FFFFFF` | 14.01 | `#DDE3F0` on `#0E1530` | 13.97 | 3.0:1 graphic |
 
 Closest pair (CIEDE2000 ΔE, higher is more distinct) after simulating each vision type (Machado 2009, full severity):
 
 | Set | Mode | Normal | Protanopia | Deuteranopia | Tritanopia |
 |---|---|---|---|---|---|
-| Severity (brand + critical/warning/info) | light | 25.8 (primary/warning) | 20.1 (primary/warning) | 13.4 (primary/warning) | 13.7 (primary/warning) |
-| Severity (brand + critical/warning/info) | dark | 35.0 (critical/info) | 33.0 (critical/info) | 24.3 (critical/info) | 21.9 (critical/warning) |
-| Health (brand + critical/warning/success) | light | 25.8 (primary/warning) | 18.6 (primary/success) | 13.4 (primary/warning) | 13.7 (primary/warning) |
-| Health (brand + critical/warning/success) | dark | 37.9 (primary/critical) | 26.4 (warning/success) | 20.3 (critical/success) | 21.9 (critical/warning) |
-| Brand red vs critical only | light | 34.9 | 42.9 | 47.7 | 24.2 |
-| Brand red vs critical only | dark | 37.9 | 51.3 | 53.4 | 22.5 |
+| Severity (brand + critical/warning/info) | light | 15.2 (primary/info) | 17.8 (primary/info) | 16.0 (primary/info) | 15.4 (primary/info) |
+| Severity (brand + critical/warning/info) | dark | 16.4 (primary/info) | 15.0 (primary/info) | 16.4 (primary/info) | 14.7 (primary/info) |
+| Health (brand + critical/warning/success) | light | 28.9 (critical/warning) | 15.2 (critical/success) | 17.8 (critical/success) | 9.9 (primary/success) |
+| Health (brand + critical/warning/success) | dark | 39.6 (warning/success) | 16.5 (warning/success) | 9.9 (critical/success) | 10.6 (primary/success) |
+| Brand blue vs info only | light | 15.2 | 17.8 | 16.0 | 15.4 |
+| Brand blue vs info only | dark | 16.4 | 15.0 | 16.4 | 14.7 |
 
 These figures are computed from the token values by `docs/tokens.py` (run `python docs/tokens.py`; `python docs/tokens.py css` prints the globals.css block) (WCAG 2.1 relative luminance; colour-blind
 simulation with the Machado et al. 2009 matrices at full severity; distance as CIEDE2000 ΔE). As a rough
-guide, ΔE above 10 is clearly distinguishable side by side. The closest pairs are brand red vs warning
-amber for deuteranopia and tritanopia (about 13). They never share a role, and warning always carries its
-triangle icon and label.
+guide, ΔE above 10 is clearly distinguishable side by side. The closest pairs are just under 10:
+brand blue vs success green for tritanopia (light), and critical red vs success green for deuteranopia (dark).
+Brand blue and success never share a role, and every status carries its own icon and label.
 
 Border (`--border`, about 1.2:1) is decorative: cards are identified by their content, not their outline.
 Anything whose outline is the only cue, such as a text field or checkbox, uses `--input` (3.6:1 or more).
@@ -182,7 +203,7 @@ and nested sections use `h3` (`<CardTitle as="h3">`).
 
 - **Page header** (`components/layout/page-header.tsx`): title, one line saying what the page answers,
   actions on the right.
-- **Buttons**: at most one primary (brand red) button per view, for the action that view exists for
+- **Buttons**: at most one primary (Orbit blue) button per view, for the action that view exists for
   (Log in, Wear log CSV, Audit summary, Run analysis, Save changes). Everything else is `outline`,
   `ghost` or `link`. Repeated row actions (Resolve, Start work) are never primary.
   Icon-only buttons always have an `aria-label`.

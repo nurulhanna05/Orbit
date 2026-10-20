@@ -300,7 +300,7 @@ function PrivacySettings() {
 
           <p className="flex gap-2 border-t pt-3 text-xs text-muted-foreground">
             <Scale className="h-4 w-4 shrink-0" />
-            This page describes how AnomalyGuard is designed. It is not legal advice; confirm your obligations under
+            This page describes how Orbit is designed. It is not legal advice; confirm your obligations under
             the PDPA with a qualified adviser.
           </p>
         </CardContent>

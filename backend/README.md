@@ -1,4 +1,4 @@
-# AnomalyGuard edge service (FastAPI + YOLOv8)
+# Orbit edge service (FastAPI + YOLOv8)
 
 A minimal real backend for the dashboard's Model Sandbox. It implements the contract in
 `lib/anomaly/api.ts` (`EdgeDetection`).

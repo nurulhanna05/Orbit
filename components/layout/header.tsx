@@ -4,7 +4,7 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { formatDistanceToNow } from 'date-fns';
-import { ScanEye, Bell, Menu, LogOut, Settings as SettingsIcon } from 'lucide-react';
+import { Bell, Menu, LogOut, Settings as SettingsIcon } from 'lucide-react';
 import { useAuth } from '@/components/providers/auth-provider';
 import { useAnomaly } from '@/components/providers/anomaly-provider';
 import { Button } from '@/components/ui/button';
@@ -24,20 +24,16 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { PrivacyStatusBadge } from '@/components/anomaly/privacy-shield';
 import { SimulateMenu } from '@/components/anomaly/simulate-menu';
 import NavLinks from './nav-links';
+import { OrbitLogo } from './orbit-logo';
 import { DETECTION_CLASSES } from '@/lib/anomaly/taxonomy';
 import { SeverityIcon } from '@/components/anomaly/status';
 
-export function Brand({ size = 'md' }: { size?: 'md' | 'lg' }) {
+export function Brand() {
   const { settings } = useAnomaly();
   return (
-    <div className="flex items-center gap-2">
-      <div className="rounded-md bg-primary p-1.5 text-primary-foreground">
-        <ScanEye className={size === 'lg' ? 'h-6 w-6' : 'h-5 w-5'} aria-hidden />
-      </div>
-      <div className="leading-tight">
-        <p className="font-semibold tracking-tight">{settings.systemName}</p>
-        <p className="text-xs text-muted-foreground">{settings.township}</p>
-      </div>
+    <div className="flex items-center gap-3">
+      <OrbitLogo className="h-10" />
+      <p className="border-l pl-3 text-xs leading-tight text-muted-foreground">{settings.township}</p>
     </div>
   );
 }

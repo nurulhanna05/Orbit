@@ -65,11 +65,6 @@ const config: Config = {
           foreground: 'hsl(var(--primary-foreground))',
         },
         link: 'hsl(var(--link))',
-        gold: {
-          DEFAULT: 'hsl(var(--gold))',
-          foreground: 'hsl(var(--gold-foreground))',
-        },
-        coral: 'hsl(var(--coral))',
         critical: {
           DEFAULT: 'hsl(var(--critical))',
           soft: 'hsl(var(--critical-soft))',

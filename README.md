@@ -1,10 +1,10 @@
-# AnomalyGuard
+# Orbit
 
 **A privacy-first smart township and infrastructure platform.** Built for the Sime Darby hackathon (Track: People). Demo township: *SDP Township · City of Elmina*.
 
 > We looked at existing open-source security platforms and found they violate privacy and cause PDPA friction. We repurposed the infrastructure into a privacy-first asset telemetry tool.
 
-AnomalyGuard gives township operators situational awareness and predictive maintenance for community spaces: jogging tracks, playgrounds, bin bays, main gates, car parks and corridors. It detects **object states, environmental hazards and anonymous behaviour, never identities**.
+Orbit gives township operators situational awareness and predictive maintenance for community spaces: jogging tracks, playgrounds, bin bays, main gates, car parks and corridors. It detects **object states, environmental hazards and anonymous behaviour, never identities**.
 
 ## The problem
 
@@ -49,7 +49,7 @@ CleanCo (bins), PipeFix (plumbing), FixIt Works (civil and accessibility), Elect
 
 ## Privacy by design
 
-AnomalyGuard is built privacy-by-design and aligned with PDPA principles. It is not certified as compliant with anything, and the *Privacy & Compliance* page says so: it describes design choices, not legal advice.
+Orbit is built privacy-by-design and aligned with PDPA principles. It is not certified as compliant with anything, and the *Privacy & Compliance* page says so: it describes design choices, not legal advice.
 
 - No facial recognition, enrolment photos, face templates, attendance or person re-identification. These modules were **removed** from the original codebase.
 - **Live view is transient and for authorised operators only.** It is shown as is and is not recorded.
@@ -208,7 +208,7 @@ Expected detection payload (see `EdgeDetection` in `lib/anomaly/api.ts`):
 
 ## Models, training data and test clips
 
-AnomalyGuard trains nothing. It runs two pre-trained models exactly as published, and no custom dataset was collected or labelled. Both run locally inside the backend (`backend/main.py`), on CPU. The dashboard itself runs no model.
+Orbit trains nothing. It runs two pre-trained models exactly as published, and no custom dataset was collected or labelled. Both run locally inside the backend (`backend/main.py`), on CPU. The dashboard itself runs no model.
 
 ### YOLOv8n: person detector
 
@@ -386,7 +386,7 @@ YOLOv8n counted well when people were whole and separate (the CCTV-style clip). 
 
 ### Licences: what they mean if this is ever sold or closed-source
 
-- **YOLOv8 (AGPL-3.0):** if you distribute software that includes it, **or let people use it over a network** (for example a hosted dashboard for a township), you must make the full source code of the whole application available under AGPL-3.0. To sell AnomalyGuard or keep its code private, you would need a paid [Ultralytics Enterprise licence](https://www.ultralytics.com/license), or a replacement person detector under a permissive licence.
+- **YOLOv8 (AGPL-3.0):** if you distribute software that includes it, **or let people use it over a network** (for example a hosted dashboard for a township), you must make the full source code of the whole application available under AGPL-3.0. To sell Orbit or keep its code private, you would need a paid [Ultralytics Enterprise licence](https://www.ultralytics.com/license), or a replacement person detector under a permissive licence.
 - **YuNet (MIT):** can be used in commercial and closed-source software. You only need to keep its copyright and licence notice.
 - **Training data:** COCO and WIDER FACE have their own terms. Check them before any commercial use.
 
@@ -439,4 +439,4 @@ Optional backend: Python, FastAPI, Ultralytics YOLOv8 (`yolov8n`), OpenCV (YuNet
 
 ## Credits
 
-AnomalyGuard was repurposed from [rudra-sah00/A-AI](https://github.com/rudra-sah00/A-AI) (MIT License). The original copyright notice is kept in [LICENSE](LICENSE).
+Orbit (formerly AnomalyGuard) was repurposed from [rudra-sah00/A-AI](https://github.com/rudra-sah00/A-AI) (MIT License). The original copyright notice is kept in [LICENSE](LICENSE).

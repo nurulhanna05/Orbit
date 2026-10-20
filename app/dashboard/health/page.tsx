@@ -56,7 +56,7 @@ export default function HealthPage() {
     <div className="mx-auto max-w-[1600px] space-y-6">
       <PageHeader
         title="Edge & IoT Health"
-        description="Is the infrastructure behind AnomalyGuard healthy? Edge inference nodes, camera feeds, IoT sensors and services."
+        description="Is the infrastructure behind Orbit healthy? Edge inference nodes, camera feeds, IoT sensors and services."
       />
 
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">

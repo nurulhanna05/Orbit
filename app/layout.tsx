@@ -9,7 +9,7 @@ import { AuthGuard } from "@/components/auth/auth-guard";
 const inter = Inter({ subsets: ['latin'] });
 
 export const metadata: Metadata = {
-  title: "AnomalyGuard · SDP Township · City of Elmina",
+  title: "Orbit · SDP Township · City of Elmina",
   description: "Privacy-first township situational awareness and predictive maintenance",
 };
 

@@ -1,4 +1,4 @@
-// AnomalyGuard domain types.
+// Orbit domain types.
 // Everything here describes object states, hazards and anonymous behaviour.
 // No type in this file carries identity data (no names, faces, plates or IDs of people).
 
