@@ -119,4 +119,11 @@ See [Security model](docs/DOCUMENTATION.md#security-model).
 
 ## Credits
 
+Built by **SheCodes** for the Sime Darby Property Hackathon 2026:
+
+- Nurul Hanna binti Abdul Halim ([@nurulhanna25072005-bot](https://github.com/nurulhanna25072005-bot))
+- Nur Hannah binti Muhammad Yuri ([@hana-yur](https://github.com/hana-yur))
+- Rasya Aleeya binti Mohd Shakri ([@rasyashakri05](https://github.com/rasyashakri05))
+- Siti Najah Nurdini binti Mohd Amran ([@nurdini1645](https://github.com/nurdini1645))
+
 Orbit (formerly AnomalyGuard) was repurposed from [rudra-sah00/A-AI](https://github.com/rudra-sah00/A-AI) (MIT License). The original copyright notice is kept in [LICENSE](LICENSE).

@@ -6,6 +6,7 @@ import Header from './header';
 import { useAuth } from '@/components/providers/auth-provider';
 import { useRouter } from 'next/navigation';
 import { Skeleton } from '@/components/ui/skeleton';
+import { SiteFooter } from './site-footer';
 
 export default function AppShell({ children }: { children: React.ReactNode }) {
   const [isMounted, setIsMounted] = useState(false);
@@ -66,7 +67,10 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
         
         {/* Main content - only this should scroll */}
         <main className="flex-1 md:ml-64 overflow-auto p-4 md:p-6 h-[calc(100vh-4rem)]">
-          {children}
+          <div className="flex min-h-full flex-col">
+            <div className="flex-1">{children}</div>
+            <SiteFooter className="mt-12" />
+          </div>
         </main>
       </div>
     </div>

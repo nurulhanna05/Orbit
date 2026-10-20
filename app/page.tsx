@@ -4,6 +4,7 @@ import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/components/providers/auth-provider';
 import LoginForm from '@/components/auth/login-form';
+import { SiteFooter } from '@/components/layout/site-footer';
 
 export default function Home() {
   const { user } = useAuth();
@@ -16,10 +17,13 @@ export default function Home() {
   }, [user, router]);
 
   return (
-    <main className="flex min-h-screen items-center justify-center bg-background">
-      <div className="mx-auto w-full max-w-[400px] p-4">
-        <LoginForm />
-      </div>
-    </main>
+    <div className="flex min-h-screen flex-col bg-background">
+      <main className="flex flex-1 items-center justify-center">
+        <div className="mx-auto w-full max-w-[400px] p-4">
+          <LoginForm />
+        </div>
+      </main>
+      <SiteFooter className="mx-auto w-full max-w-5xl px-4 pb-6" />
+    </div>
   );
 }
