@@ -21,7 +21,7 @@ The commands below are for Windows (Command Prompt or PowerShell). On macOS or L
 The dashboard runs fully on its own, with simulated cameras and incidents.
 
 ```
-git clone <repository url> orbit
+git clone https://github.com/nurulhanna05/Orbit.git orbit
 cd orbit
 npm install
 npm run dev
@@ -121,7 +121,7 @@ See [Security model](docs/DOCUMENTATION.md#security-model).
 
 Built by **SheCodes** for the Sime Darby Property Hackathon 2026:
 
-- Nurul Hanna binti Abdul Halim ([@nurulhanna25072005-bot](https://github.com/nurulhanna25072005-bot))
+- Nurul Hanna binti Abdul Halim ([@nurulhanna05](https://github.com/nurulhanna05))
 - Nur Hannah binti Muhammad Yuri ([@hana-yur](https://github.com/hana-yur))
 - Rasya Aleeya binti Mohd Shakri ([@rasyashakri05](https://github.com/rasyashakri05))
 - Siti Najah Nurdini binti Mohd Amran ([@nurdini1645](https://github.com/nurdini1645))

@@ -2,7 +2,7 @@ import { Github } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 const TEAM = [
-  { name: 'Nurul Hanna binti Abdul Halim', github: 'nurulhanna25072005-bot' },
+  { name: 'Nurul Hanna binti Abdul Halim', github: 'nurulhanna05' },
   { name: 'Nur Hannah binti Muhammad Yuri', github: 'hana-yur' },
   { name: 'Rasya Aleeya binti Mohd Shakri', github: 'rasyashakri05' },
   { name: 'Siti Najah Nurdini binti Mohd Amran', github: 'nurdini1645' },
