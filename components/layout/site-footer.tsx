@@ -21,11 +21,11 @@ export function SiteFooter({ className }: { className?: string }) {
             built for the Sime Darby Property Hackathon 2026.
           </p>
           <p>
-            Based on{' '}
+            Uses{' '}
             <a href="https://github.com/rudra-sah00/A-AI" target="_blank" rel="noopener noreferrer" className={link}>
               rudra-sah00/A-AI
             </a>{' '}
-            (MIT License). © 2026 SheCodes.
+            (MIT License) as a reference. © 2026 SheCodes.
           </p>
         </div>
         <ul className="grid gap-x-6 gap-y-1 sm:grid-cols-2" aria-label="Team SheCodes">

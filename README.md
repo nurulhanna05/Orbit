@@ -126,4 +126,8 @@ Built by **SheCodes** for the Sime Darby Property Hackathon 2026:
 - Rasya Aleeya binti Mohd Shakri ([@rasyashakri05](https://github.com/rasyashakri05))
 - Siti Najah Nurdini binti Mohd Amran ([@nurdini1645](https://github.com/nurdini1645))
 
-Orbit (formerly AnomalyGuard) was repurposed from [rudra-sah00/A-AI](https://github.com/rudra-sah00/A-AI) (MIT License). The original copyright notice is kept in [LICENSE](LICENSE).
+AI assistants [Claude](https://claude.ai) (Anthropic) and [Gemini](https://gemini.google.com) (Google) helped during development.
+
+Orbit was originally called AnomalyGuard, the first name our team chose for the project.
+
+[rudra-sah00/A-AI](https://github.com/rudra-sah00/A-AI) (MIT License) was used as a reference for this codebase. The original copyright notice is kept in [LICENSE](LICENSE).
