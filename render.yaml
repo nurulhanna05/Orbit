@@ -1,0 +1,38 @@
+# Render Blueprint: Dashboard → New → Blueprint, then pick this repo.
+services:
+  # FastAPI + YOLOv8 detection service (backend/).
+  - type: web
+    name: orbit-api
+    runtime: docker
+    rootDir: backend
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    plan: free # torch + YOLO is tight in 512 MB; switch to starter if it runs out of memory
+    healthCheckPath: /docs
+    envVars:
+      - key: AG_CROWD_THRESHOLD
+        value: "8"
+      - key: AG_ALLOWED_ORIGINS
+        fromService:
+          type: web
+          name: orbit-web
+          property: host
+
+  # Next.js static export (out/).
+  - type: web
+    name: orbit-web
+    runtime: static
+    buildCommand: npm ci && NEXT_PUBLIC_ANOMALYGUARD_API=https://$API_HOST npm run build
+    staticPublishPath: ./out
+    envVars:
+      - key: NODE_VERSION
+        value: "20"
+      - key: API_HOST
+        fromService:
+          type: web
+          name: orbit-api
+          property: host
+      - key: NEXT_PUBLIC_ANOMALYGUARD_LOGIN_USER
+        sync: false
+      - key: NEXT_PUBLIC_ANOMALYGUARD_LOGIN_SHA256
+        sync: false

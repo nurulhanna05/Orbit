@@ -50,6 +50,12 @@ REAL_CLASSES = {"person_fallen", "crowd_density"}
 # Snapshots of these are cropped to the asset. This service does not emit them yet; the dashboard simulates them.
 ASSET_CLASSES = {"lamp_off", "pipe_leak", "bin_overflow"}
 ALLOWED_ORIGINS = ["http://localhost:3000", "http://localhost:3123"]
+# Extra comma-separated origins for a deployed dashboard; a bare host (as Render passes it) is taken as https.
+ALLOWED_ORIGINS += [
+    o if "://" in o else f"https://{o}"
+    for o in (s.strip() for s in os.environ.get("AG_ALLOWED_ORIGINS", "").split(","))
+    if o
+]
 
 app = FastAPI(title="Orbit edge service")
 app.add_middleware(
